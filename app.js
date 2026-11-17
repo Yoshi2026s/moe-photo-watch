@@ -11,6 +11,16 @@ function todayJst() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/
 function dateKey(date) {
   return typeof date === 'string' && /^\d{4}\/\d{2}\/\d{2}$/.test(date) ? date.replaceAll('/', '-') : '9999';
 }
+function slotBadge(value) {
+  const status = typeof value === 'string' ? value.trim().normalize('NFKC') : '';
+  if (/^(?:空き|空きあり|予約可|予約可能|予約受付中|○|〇|◯)$/.test(status)) {
+    return { label: '空き', variant: 'available' };
+  }
+  if (/^(?:予約不可|満枠|満席|受付終了|×(?:\(公式表示\))?)$/.test(status)) {
+    return { label: '予約不可', variant: 'unavailable' };
+  }
+  return { label: '未確認', variant: 'unknown' };
+}
 function renderSlots(slots, past) {
   const valid = Array.isArray(slots) ? slots.filter(slot =>
     slot && typeof slot.label === 'string' && slot.label.trim()
@@ -24,9 +34,9 @@ function renderSlots(slots, past) {
   const list = element('ul', '', 'slot-list');
   for (const slot of valid) {
     const timing = typeof slot.time === 'string' && slot.time ? slot.time : '時間未確認';
-    const status = typeof slot.status === 'string' && slot.status.trim() ? slot.status : '未確認';
+    const status = slotBadge(slot.status);
     const row = element('li', '', 'slot-row');
-    row.append(element('strong', slot.label), element('span', timing), element('span', status, 'slot-status'));
+    row.append(element('strong', slot.label), element('span', timing), element('span', status.label, 'slot-status slot-status--' + status.variant));
     list.append(row);
   }
   section.append(list);
