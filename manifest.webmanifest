@@ -1,0 +1,31 @@
+{
+  "id": "./",
+  "name": "もえの撮影会情報",
+  "short_name": "もえ撮影会",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "lang": "ja",
+  "theme_color": "#fff6fa",
+  "background_color": "#fff9fc",
+  "icons": [
+    {
+      "src": "icons/moe-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/moe-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/moe-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
