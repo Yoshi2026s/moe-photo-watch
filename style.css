@@ -6,8 +6,8 @@
 .slot-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .slot-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; padding: 8px 10px; border-radius: 8px; background: #faf2f6; font-size: .9rem; }
 .slot-row > strong { grid-column: 1; }
-.slot-row > span:nth-child(2) { grid-column: 1; font-variant-numeric: tabular-nums; }
-.slot-status { grid-column: 2; grid-row: 1 / span 2; text-align: right; color: #71334f; font-weight: 700; }
+
+.slot-status { grid-column: 2; grid-row: 1 / span 2; text-align: right; color: #71334f; font-weight: 700; white-space: nowrap; }
 
 .slot-status { display: inline-block; padding: 4px 8px; border-radius: 999px; }
 .slot-status--available { background: #dcfce7; color: #14532d; }
@@ -22,11 +22,6 @@
 .stale { color: #78350f; font-weight: 700; }
 .official { display: flex; width: 100%; }
 .sources .links { margin-top: 8px; }
-@media (min-width: 360px) {
-  .slot-row { grid-template-columns: auto minmax(0, 1fr) auto; }
-  .slot-row > span:nth-child(2) { grid-column: 2; }
-  .slot-status { grid-column: 3; grid-row: 1; }
-}
 
 .filters label { font-size: .875rem; }
 .filters:not([hidden]) { align-items: end; }
@@ -35,11 +30,15 @@
 /* Align time ranges across slots and keep each range together. */
 .slot-row .slot-time {
   color: #392d36;
-  font-size: 1rem;
+  grid-column: 1;
+  font-size: 1.125rem;
   font-weight: 700;
+  line-height: 1.35;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-@media (min-width: 360px) {
+@media (min-width: 400px) {
   .slot-row { grid-template-columns: 4.25rem minmax(0, 1fr) auto; }
+  .slot-row .slot-time { grid-column: 2; }
+  .slot-status { grid-column: 3; grid-row: 1; }
 }
