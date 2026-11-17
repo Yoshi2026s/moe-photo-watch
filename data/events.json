@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026/11/18 01:46",
+  "updated_at": "2026/11/18 02:28",
   "events": [
     {
       "date": "2026/11/15",
@@ -435,6 +435,23 @@
         {
           "kind": "official_post",
           "url": "https://x.com/moe_moechan121/status/2121624350420034009"
+        }
+      ]
+    },
+    {
+      "date": "2026/10/26",
+      "title": "Fresh フォトセッション「あの子の浴衣姿」",
+      "venue": "フレッシュロッカイstudio",
+      "status": "予約不要",
+      "details": "料金：1時間4,400円、3時間パック9,900円、終日パック15,400円（税込）。",
+      "checked_at": "2026/11/18 02:28",
+      "url": "https://www.fresh-club.net/akb/detail/5315",
+      "kind": "group_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://www.fresh-club.net/akb/detail/5315"
         }
       ]
     }
