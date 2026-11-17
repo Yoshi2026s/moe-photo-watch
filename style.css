@@ -5,6 +5,10 @@
 .reservation-slots h4 { margin: 0 0 8px; font-size: 1rem; }
 .slot-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .slot-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; padding: 8px 10px; border-radius: 8px; background: #faf2f6; font-size: .9rem; }
+.slot-row--available {
+  background: #f0fdf4;
+  box-shadow: inset 3px 0 #15803d;
+}
 .slot-row > strong { grid-column: 1; }
 
 .slot-status {
@@ -26,6 +30,8 @@
 .filters label { display: block; margin-bottom: 4px; }
 .booking-note { color: #6b5663; font-size: .875rem; margin: 0 0 12px; }
 .card { padding: 14px; }
+.card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; }
+.availability-count { background: #dcfce7; color: #14532d; font-size: .9rem; }
 .card .meta { margin-block: 6px; }
 .stale { color: #78350f; font-weight: 700; }
 .official { display: flex; width: 100%; }
