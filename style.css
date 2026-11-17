@@ -31,3 +31,15 @@
 .filters label { font-size: .875rem; }
 .filters:not([hidden]) { align-items: end; }
 .reservation-slots { margin-top: 10px; }
+
+/* Align time ranges across slots and keep each range together. */
+.slot-row .slot-time {
+  color: #392d36;
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (min-width: 360px) {
+  .slot-row { grid-template-columns: 4.25rem minmax(0, 1fr) auto; }
+}
