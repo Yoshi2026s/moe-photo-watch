@@ -35,7 +35,7 @@
 .card .meta { margin-block: 6px; }
 .stale { color: #78350f; font-weight: 700; }
 .official { display: flex; width: 100%; }
-.sources .links { margin-top: 8px; }
+.sources .links, .source-posts { margin-top: 8px; }
 
 .filters label { font-size: .875rem; }
 .filters:not([hidden]) { align-items: end; }
