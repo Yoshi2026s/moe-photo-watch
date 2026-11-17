@@ -76,7 +76,7 @@ function renderSlots(valid, past) {
     const timing = typeof slot.time === 'string' && slot.time ? slot.time : '時間未確認';
     const status = slotBadge(slot.status);
     const row = element('li', '', 'slot-row');
-    row.append(element('strong', slot.label), element('span', timing), element('span', status.label, 'slot-status slot-status--' + status.variant));
+    row.append(element('strong', slot.label), element('span', timing, 'slot-time'), element('span', status.label, 'slot-status slot-status--' + status.variant));
     list.append(row);
   }
   section.append(list);
