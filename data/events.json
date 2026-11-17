@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026/11/18 03:16",
+  "updated_at": "2026/11/18 03:26",
   "events": [
     {
       "date": "2026/11/15",
@@ -454,6 +454,114 @@
           "url": "https://www.fresh-club.net/akb/detail/5315"
         }
       ]
+    },
+    {
+      "date": "2026/09/19",
+      "title": "ことり撮影会 雪餅羽もえ 古民家個人撮影会",
+      "venue": "スタジオ結または周辺野外（那珂川市）",
+      "status": "予約状況：未確認",
+      "details": "料金：スタジオ11,000円、周辺野外9,000円。オプション：制服12,000円、浴衣13,000円。中止条件：スタジオ雨天決行、周辺野外は小雨決行・雨天中止。",
+      "checked_at": "2026/11/18 03:26",
+      "url": "https://photo-f.cotori-pr.com/archives/events/228",
+      "kind": "individual_photo",
+      "slots": [
+        {
+          "label": "第1部",
+          "time": "09:20〜10:10",
+          "status": "未確認"
+        },
+        {
+          "label": "第2部",
+          "time": "10:25〜11:15",
+          "status": "未確認"
+        },
+        {
+          "label": "第3部",
+          "time": "11:30〜12:20",
+          "status": "未確認"
+        },
+        {
+          "label": "第4部",
+          "time": "12:35〜13:25",
+          "status": "未確認"
+        },
+        {
+          "label": "第5部",
+          "time": "13:40〜14:30",
+          "status": "未確認"
+        },
+        {
+          "label": "第6部",
+          "time": "14:45〜15:35",
+          "status": "未確認"
+        },
+        {
+          "label": "第7部",
+          "time": "15:50〜16:40",
+          "status": "未確認"
+        },
+        {
+          "label": "第8部",
+          "time": "16:55〜17:45",
+          "status": "未確認"
+        }
+      ],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://photo-f.cotori-pr.com/archives/events/228"
+        },
+        {
+          "kind": "official_post",
+          "url": "https://x.com/cotosatsu/status/2098232563517321677"
+        }
+      ]
+    },
+    {
+      "date": "2026/09/21",
+      "title": "Smooth 雪餅羽もえ 2スタジオ個人撮影会",
+      "venue": "東京（会場未確認）",
+      "status": "予約状況：未確認",
+      "details": "",
+      "checked_at": "2026/11/18 03:26",
+      "url": "https://x.com/smooth_tokyo/status/2098381042998452531",
+      "kind": "individual_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_post",
+          "url": "https://x.com/smooth_tokyo/status/2098381042998452531"
+        },
+        {
+          "kind": "official_post",
+          "url": "https://x.com/moe_moechan121/status/2098313597978042437"
+        }
+      ]
+    },
+    {
+      "date": "2026/09/22",
+      "title": "Gスタ SPLASH SUMMER Happy Yellow Edition DAY3",
+      "venue": "アルネットホームスマイルパークしらこばとプール",
+      "status": "開催中止",
+      "details": "",
+      "checked_at": "2026/11/18 03:26",
+      "url": "https://studio-g.net/event/28751/",
+      "kind": "group_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://studio-g.net/event/28751/"
+        },
+        {
+          "kind": "official_post",
+          "url": "https://x.com/gst_tokyo/status/2085289784918843901"
+        },
+        {
+          "kind": "official_post",
+          "url": "https://x.com/moe_moechan121/status/2098659409027305838"
+        }
+      ]
     }
   ],
   "source_accounts": [
@@ -521,6 +629,11 @@
       "name": "雪餅羽もえ Threads",
       "url": "https://threads.com/@moe_moe121",
       "confirmed_by": "https://www.instagram.com/moe_moe121/"
+    },
+    {
+      "name": "Gスタ撮影会 X",
+      "url": "https://x.com/gst_tokyo",
+      "confirmed_by": "https://studio-g.net/"
     }
   ]
 }
