@@ -36,8 +36,9 @@ function repeatsSlotStatus(status, slots) {
   if (count) return allUnavailable && Number(count[1]) === slots.length;
   if (range) {
     const start = Number(range[1]);
+    const labels = new Set(slots.map(slot => slot.label));
     return allUnavailable && Number(range[2]) - start + 1 === slots.length &&
-      slots.every((slot, index) => slot.label === '第' + (start + index) + '部');
+      slots.every((_, index) => labels.has('第' + (start + index) + '部'));
   }
   return /^(?:各部の予約状況：)?未確認$|^予約状況：未確認$/.test(summary) &&
     slots.every(slot => slotBadge(slot.status).variant === 'unknown');
@@ -64,6 +65,11 @@ function cardDetails(details, slots) {
   return parts.filter(part => !duplicate.has(part.trim().replace(/。$/, ''))).join('').trim();
 }
 
+function slotStart(time) {
+  const start = time.match(/^([01]?\d|2[0-3]):([0-5]\d)(?=\s*(?:[〜~–—-]|$))/);
+  return start ? Number(start[1]) * 60 + Number(start[2]) : Number.MAX_SAFE_INTEGER;
+}
+
 function renderSlots(valid, past) {
   const section = element('div', '', 'reservation-slots');
   section.append(element('h4', past ? '予約枠（掲載時点）' : '予約枠'));
@@ -72,9 +78,14 @@ function renderSlots(valid, past) {
     return section;
   }
   const list = element('ul', '', 'slot-list');
-  for (const slot of valid) {
+  const ordered = valid.map(slot => {
     const time = typeof slot.time === 'string' ? slot.time.trim() : '';
-    const timing = time.replace(/^(\d{1,2}:\d{2})\s*[〜～]\s*(\d{1,2}:\d{2})$/, '$1 〜 $2') || '時間未確認';
+    const normalized = time.normalize('NFKC');
+    const range = normalized.match(/^(\d{1,2}:\d{2})\s*[〜~–—-]\s*(\d{1,2}:\d{2})$/);
+    const timing = range ? range[1].padStart(5, '0') + ' 〜 ' + range[2].padStart(5, '0') : time || '時間未確認';
+    return { slot, timing, start: slotStart(normalized) };
+  }).sort((a, b) => a.start - b.start);
+  for (const { slot, timing } of ordered) {
     const status = slotBadge(slot.status);
     const row = element('li', '', 'slot-row');
     row.append(element('strong', slot.label), element('span', timing, 'slot-time'), element('span', status.label, 'slot-status slot-status--' + status.variant));

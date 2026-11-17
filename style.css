@@ -7,9 +7,17 @@
 .slot-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; padding: 8px 10px; border-radius: 8px; background: #faf2f6; font-size: .9rem; }
 .slot-row > strong { grid-column: 1; }
 
-.slot-status { grid-column: 2; grid-row: 1 / span 2; text-align: right; color: #71334f; font-weight: 700; white-space: nowrap; }
-
-.slot-status { display: inline-block; padding: 4px 8px; border-radius: 999px; }
+.slot-status {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  justify-self: end;
+  min-inline-size: 5rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  text-align: center;
+  font-weight: 700;
+  white-space: nowrap;
+}
 .slot-status--available { background: #dcfce7; color: #14532d; }
 .slot-status--unavailable { background: #ffe4e6; color: #881337; }
 .slot-status--unknown { background: #e5e7eb; color: #374151; }
