@@ -21,10 +21,50 @@ function slotBadge(value) {
   }
   return { label: '未確認', variant: 'unknown' };
 }
-function renderSlots(slots, past) {
-  const valid = Array.isArray(slots) ? slots.filter(slot =>
+function validSlots(slots) {
+  return Array.isArray(slots) ? slots.filter(slot =>
     slot && typeof slot.label === 'string' && slot.label.trim()
   ) : [];
+}
+
+function repeatsSlotStatus(status, slots) {
+  if (!slots.length) return false;
+  const summary = typeof status === 'string' ? status.trim() : '';
+  const count = summary.match(/^(\d+)枠とも×・予約不可$/);
+  const range = summary.match(/^第(\d+)〜(\d+)部：公式ページで×表示$/);
+  const allUnavailable = slots.every(slot => slotBadge(slot.status).variant === 'unavailable');
+  if (count) return allUnavailable && Number(count[1]) === slots.length;
+  if (range) {
+    const start = Number(range[1]);
+    return allUnavailable && Number(range[2]) - start + 1 === slots.length &&
+      slots.every((slot, index) => slot.label === '第' + (start + index) + '部');
+  }
+  return /^(?:各部の予約状況：)?未確認$|^予約状況：未確認$/.test(summary) &&
+    slots.every(slot => slotBadge(slot.status).variant === 'unknown');
+}
+
+function cardDetails(details, slots) {
+  if (typeof details !== 'string') return '';
+  const times = slots.map(slot => slot.time);
+  const first = times[0]?.split?.('〜');
+  const last = times.at(-1)?.split?.('〜');
+  const labels = slots.map(slot => slot.label);
+  const parts = details.match(/[^。]+。?/g) || [];
+  const duplicate = new Set(['予約状況は変動する場合があります']);
+  if (times.length && times.every(time => typeof time === 'string' && time)) {
+    duplicate.add(times.join('、'));
+  }
+  if (first?.length === 2 && last?.length === 2) {
+    duplicate.add(first[0] + '〜' + last[1] + 'の間に全' + slots.length + '部');
+  }
+  const firstPart = labels[0]?.match(/^第(\d+)部$/);
+  if (firstPart && labels.every((label, i) => label === '第' + (Number(firstPart[1]) + i) + '部')) {
+    duplicate.add('個人撮影・' + firstPart[1] + '〜' + (Number(firstPart[1]) + slots.length - 1) + '部');
+  }
+  return parts.filter(part => !duplicate.has(part.trim().replace(/。$/, ''))).join('').trim();
+}
+
+function renderSlots(valid, past) {
   const section = element('div', '', 'reservation-slots');
   section.append(element('h4', past ? '予約枠（掲載時点）' : '予約枠'));
   if (!valid.length) {
@@ -60,10 +100,15 @@ function show(data) {
     const isToday = dateKey(item.date) === today;
     const checked = typeof item.checked_at === 'string' && /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(item.checked_at) ? Date.parse(item.checked_at.replaceAll('/', '-').replace(' ', 'T') + ':00+09:00') : NaN;
     const card = element('article', '', 'card');
-    card.append(element('div', (isToday ? '本日 · ' : '') + (item.date || '開催日：未確認'), 'date'), element('h3', item.title || '撮影会'), element('span', past ? '開催日経過' : item.status || '予約状況：未確認', 'badge'));
+    const slots = validSlots(item.slots);
+    card.append(element('div', (isToday ? '本日 · ' : '') + (item.date || '開催日：未確認'), 'date'), element('h3', item.title || '撮影会'));
+    if (past || !repeatsSlotStatus(item.status || '未確認', slots)) {
+      card.append(element('span', past ? '開催日経過' : item.status || '予約状況：未確認', 'badge'));
+    }
     if (item.venue) card.append(element('p', '会場：' + item.venue));
-    if (item.details) card.append(element('p', item.details));
-    card.append(renderSlots(item.slots, past));
+    card.append(renderSlots(slots, past));
+    const details = cardDetails(item.details, slots);
+    if (details) card.append(element('p', details));
     card.append(element('p', '確認日時：' + (item.checked_at || '未確認') + (item.checked_at ? '（日本時間）' : ''), 'meta'));
     if (!past && Number.isFinite(checked) && Date.now() - checked >= 86400000) {
       card.append(element('p', '確認から24時間以上経過', 'meta stale'));

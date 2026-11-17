@@ -27,3 +27,7 @@
   .slot-row > span:nth-child(2) { grid-column: 2; }
   .slot-status { grid-column: 3; grid-row: 1; }
 }
+
+.filters label { font-size: .875rem; }
+.filters:not([hidden]) { align-items: end; }
+.reservation-slots { margin-top: 10px; }
