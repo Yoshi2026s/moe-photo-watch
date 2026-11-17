@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026/11/18 02:28",
+  "updated_at": "2026/11/18 02:39",
   "events": [
     {
       "date": "2026/11/15",
@@ -481,6 +481,36 @@
       "name": "COCO撮影会 公式ブログ",
       "url": "https://ameblo.jp/cocophotsession/",
       "confirmed_by": "https://ameblo.jp/cocophotsession/entry-12977113698.html"
+    },
+    {
+      "name": "雪餅羽もえ Instagram",
+      "url": "https://www.instagram.com/moe_moe121/",
+      "confirmed_by": "https://lit.link/nowan_moe0121"
+    },
+    {
+      "name": "雪餅羽もえ 公式LINE",
+      "url": "https://line.me/R/ti/p/%40244vsbgs",
+      "confirmed_by": "https://lit.link/nowan_moe0121"
+    },
+    {
+      "name": "ことり撮影会 Instagram",
+      "url": "https://www.instagram.com/cotosatsu/",
+      "confirmed_by": "https://photo-f.cotori-pr.com/"
+    },
+    {
+      "name": "ことり撮影会 公式LINE",
+      "url": "https://line.me/R/ti/p/%40qvc9531l",
+      "confirmed_by": "https://photo-f.cotori-pr.com/"
+    },
+    {
+      "name": "Fresh撮影会 Instagram",
+      "url": "https://www.instagram.com/infofreshclub/",
+      "confirmed_by": "https://www.fresh-club.net/"
+    },
+    {
+      "name": "Fresh撮影会 公式LINE",
+      "url": "https://page.line.me/ohk7248f",
+      "confirmed_by": "https://www.fresh-club.net/"
     }
   ]
 }
