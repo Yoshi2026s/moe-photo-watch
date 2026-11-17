@@ -11,6 +11,27 @@ function todayJst() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/
 function dateKey(date) {
   return typeof date === 'string' && /^\d{4}\/\d{2}\/\d{2}$/.test(date) ? date.replaceAll('/', '-') : '9999';
 }
+function renderSlots(slots, past) {
+  const valid = Array.isArray(slots) ? slots.filter(slot =>
+    slot && typeof slot.label === 'string' && slot.label.trim()
+  ) : [];
+  const section = element('div', '', 'reservation-slots');
+  section.append(element('h4', past ? '予約枠（掲載時点）' : '予約枠ごとの状況'));
+  if (!valid.length) {
+    section.append(element('p', '枠ごとの情報は未確認です。'));
+    return section;
+  }
+  const list = element('ul', '', 'slot-list');
+  for (const slot of valid) {
+    const timing = typeof slot.time === 'string' && slot.time ? slot.time : '時間未確認';
+    const status = typeof slot.status === 'string' && slot.status.trim() ? slot.status : '未確認';
+    const row = element('li', '', 'slot-row');
+    row.append(element('strong', slot.label), element('span', timing), element('span', status, 'slot-status'));
+    list.append(row);
+  }
+  section.append(list);
+  return section;
+}
 function show(data) {
   if (!data || typeof data !== 'object' || !Array.isArray(data.events) || data.events.some(item => !item || typeof item !== 'object' || Array.isArray(item))) throw Error('Invalid data');
   const today = todayJst();
@@ -32,6 +53,7 @@ function show(data) {
     card.append(element('div', (isToday ? '本日 · ' : '') + (item.date || '開催日：未確認'), 'date'), element('h3', item.title || '撮影会'), element('span', past ? '開催日経過' : item.status || '予約状況：未確認', 'badge'));
     if (item.venue) card.append(element('p', '会場：' + item.venue));
     if (item.details) card.append(element('p', item.details));
+    card.append(renderSlots(item.slots, past));
     card.append(element('p', '確認日時：' + (item.checked_at || '未確認') + (item.checked_at ? '（日本時間）' : ''), 'meta'));
     if (!past) card.append(element('p', Number.isFinite(checked) && Date.now() - checked >= 86400000 ? '確認から24時間以上経過しています。最新の状況は公式ページへ。' : '最新の予約状況は公式ページへ。', 'meta'));
     const url = safeUrl(item.url);
