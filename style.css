@@ -8,3 +8,8 @@
 .slot-row > strong { grid-column: 1; }
 .slot-row > span:nth-child(2) { grid-column: 1; font-variant-numeric: tabular-nums; }
 .slot-status { grid-column: 2; grid-row: 1 / span 2; text-align: right; color: #71334f; font-weight: 700; }
+
+.slot-status { display: inline-block; padding: 4px 8px; border-radius: 999px; }
+.slot-status--available { background: #dcfce7; color: #14532d; }
+.slot-status--unavailable { background: #ffe4e6; color: #881337; }
+.slot-status--unknown { background: #e5e7eb; color: #374151; }
