@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026/11/18 02:39",
+  "updated_at": "2026/11/18 02:45",
   "events": [
     {
       "date": "2026/11/15",
@@ -511,6 +511,11 @@
       "name": "Fresh撮影会 公式LINE",
       "url": "https://page.line.me/ohk7248f",
       "confirmed_by": "https://www.fresh-club.net/"
+    },
+    {
+      "name": "COCO撮影会 X",
+      "url": "https://x.com/c_o_c_o_p_s",
+      "confirmed_by": "https://cocophotosession.com/"
     }
   ]
 }
