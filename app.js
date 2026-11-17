@@ -87,7 +87,8 @@ function renderSlots(valid, past) {
   }).sort((a, b) => a.start - b.start);
   for (const { slot, timing } of ordered) {
     const status = slotBadge(slot.status);
-    const row = element('li', '', 'slot-row');
+    const highlight = !past && status.variant === 'available' ? ' slot-row--available' : '';
+    const row = element('li', '', 'slot-row' + highlight);
     row.append(element('strong', slot.label), element('span', timing, 'slot-time'), element('span', status.label, 'slot-status slot-status--' + status.variant));
     list.append(row);
   }
@@ -113,8 +114,12 @@ function show(data) {
     const checked = typeof item.checked_at === 'string' && /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(item.checked_at) ? Date.parse(item.checked_at.replaceAll('/', '-').replace(' ', 'T') + ':00+09:00') : NaN;
     const card = element('article', '', 'card');
     const slots = validSlots(item.slots);
-    card.append(element('div', (isToday ? '本日 · ' : '') + (item.date || '開催日：未確認'), 'date'), element('h3', item.title || '撮影会'));
-    if (past || !repeatsSlotStatus(item.status || '未確認', slots)) {
+    const availableCount = past ? 0 : slots.filter(slot => slotBadge(slot.status).variant === 'available').length;
+    const top = element('div', '', 'card-top');
+    top.append(element('div', (isToday ? '本日 · ' : '') + (item.date || '開催日：未確認'), 'date'));
+    if (availableCount) top.append(element('span', '空き' + availableCount + '枠', 'badge availability-count'));
+    card.append(top, element('h3', item.title || '撮影会'));
+    if (!availableCount && (past || !repeatsSlotStatus(item.status || '未確認', slots))) {
       card.append(element('span', past ? '開催日経過' : (item.status || '予約状況：未確認').replaceAll('予約不可', '予約済み'), 'badge'));
     }
     card.append(element('p', '会場：' + (item.venue || '未確認')));
