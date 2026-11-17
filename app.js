@@ -11,6 +11,13 @@ function todayJst() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/
 function dateKey(date) {
   return typeof date === 'string' && /^\d{4}\/\d{2}\/\d{2}$/.test(date) ? date.replaceAll('/', '-') : '9999';
 }
+function pastCutoff(today) {
+  const [year, month, day] = today.split('-').map(Number);
+  const first = new Date(Date.UTC(year, month - 4, 1));
+  const lastDay = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+  first.setUTCDate(Math.min(day, lastDay));
+  return first.toISOString().slice(0, 10);
+}
 function slotBadge(value) {
   const status = typeof value === 'string' ? value.trim().normalize('NFKC') : '';
   if (/^(?:空き|空きあり|予約可|予約可能|予約受付中|○|〇|◯)$/.test(status)) {
@@ -99,11 +106,13 @@ function show(data) {
   if (!data || typeof data !== 'object' || !Array.isArray(data.events) || data.events.some(item => !item || typeof item !== 'object' || Array.isArray(item))) throw Error('Invalid data');
   const today = todayJst();
   const past = period.value === 'past';
+  const cutoff = past ? pastCutoff(today) : today;
   const term = query.value.trim().normalize('NFKC').toLocaleLowerCase('ja');
   const list = data.events.filter(item => {
-    const isPast = dateKey(item.date) < today;
+    const date = dateKey(item.date);
+    const isPast = date < today;
     const searchText = [item.title, item.venue, item.date].join(' ').normalize('NFKC').toLocaleLowerCase('ja');
-    return isPast === past && searchText.includes(term);
+    return isPast === past && date >= cutoff && searchText.includes(term);
   });
   list.sort((a, b) => (past ? -1 : 1) * dateKey(a.date).localeCompare(dateKey(b.date)));
   events.replaceChildren();
@@ -114,16 +123,20 @@ function show(data) {
     const checked = typeof item.checked_at === 'string' && /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(item.checked_at) ? Date.parse(item.checked_at.replaceAll('/', '-').replace(' ', 'T') + ':00+09:00') : NaN;
     const card = element('article', '', 'card');
     const slots = validSlots(item.slots);
-    const availableCount = past ? 0 : slots.filter(slot => slotBadge(slot.status).variant === 'available').length;
+    const cancelled = /^(?:開催中止|出演中止)/.test(item.status || '');
+    const availableCount = past || cancelled ? 0 : slots.filter(slot => slotBadge(slot.status).variant === 'available').length;
     const top = element('div', '', 'card-top');
     top.append(element('div', (isToday ? '本日 · ' : '') + (item.date || '開催日：未確認'), 'date'));
     if (availableCount) top.append(element('span', '空き' + availableCount + '枠', 'badge availability-count'));
     card.append(top, element('h3', item.title || '撮影会'));
-    if (!availableCount && (past || !repeatsSlotStatus(item.status || '未確認', slots))) {
-      card.append(element('span', past ? '開催日経過' : (item.status || '予約状況：未確認').replaceAll('予約不可', '予約済み'), 'badge'));
+    if (!availableCount && (past || cancelled || !repeatsSlotStatus(item.status || '未確認', slots))) {
+      const status = past && !cancelled ? '開催日経過' : item.status || '予約状況：未確認';
+      card.append(element('span', status.replaceAll('予約不可', '予約済み'), 'badge'));
     }
     card.append(element('p', '会場：' + (item.venue || '未確認')));
-    card.append(renderSlots(slots, past));
+    if (slots.length || (!cancelled && (!item.kind || item.kind === 'individual_photo'))) {
+      card.append(renderSlots(slots, past || cancelled));
+    }
     const details = cardDetails(item.details, slots);
     if (details) card.append(element('p', '補足：' + details));
     card.append(element('p', '確認日時：' + (item.checked_at || '未確認') + (item.checked_at ? '（日本時間）' : ''), 'meta'));
@@ -132,7 +145,30 @@ function show(data) {
     }
     const url = safeUrl(item.url);
     if (!url) card.append(element('p', '主催者ページ：未確認', 'meta'));
-    if (url) { const a = element('a', '主催者の詳細ページ ↗', 'official'); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; card.append(a); }
+    if (url) {
+      const isPost = Array.isArray(item.sources) && item.sources.some(source => source?.kind === 'official_post' && safeUrl(source.url) === url);
+      const a = element('a', isPost ? '公式投稿 ↗' : '主催者の詳細ページ ↗', 'official');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      card.append(a);
+    }
+    const posts = new Set((Array.isArray(item.sources) ? item.sources : [])
+      .filter(source => source?.kind === 'official_post')
+      .map(source => safeUrl(source.url))
+      .filter(post => post && post !== url));
+    if (posts.size) {
+      const links = element('div', '', 'links source-posts');
+      for (const post of posts) {
+        const host = new URL(post).hostname.replace(/^www\./, '');
+        const link = element('a', '公式投稿 (' + host + ') ↗');
+        link.href = post;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        links.append(link);
+      }
+      card.append(links);
+    }
     events.append(card);
   }
 }

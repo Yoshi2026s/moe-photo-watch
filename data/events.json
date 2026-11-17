@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026/11/17 20:34",
+  "updated_at": "2026/11/18 01:21",
   "events": [
     {
       "date": "2026/11/15",
@@ -34,6 +34,12 @@
           "label": "第8部",
           "time": "16:55〜17:45",
           "status": "未確認"
+        }
+      ],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://photo-f.cotori-pr.com/archives/events/238"
         }
       ]
     },
@@ -71,6 +77,12 @@
           "time": "18:00〜19:00",
           "status": "予約不可"
         }
+      ],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://photo-session-chance.com/2026/09/28/2026-11-28%E5%9C%9F-%E9%9B%AA%E9%A4%85%E7%BE%BD%E3%82%82%E3%81%88/"
+        }
       ]
     },
     {
@@ -92,7 +104,193 @@
           "time": "18:20〜19:20",
           "status": "予約不可"
         }
+      ],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://www.fresh-club.net/premium/detail/4582"
+        }
       ]
+    },
+    {
+      "date": "2026/09/13",
+      "title": "COCO撮影会 雪餅羽もえ 個人撮影会",
+      "venue": "スタジオTIARAStudio（大阪）",
+      "status": "開催中止",
+      "details": "",
+      "checked_at": "2026/11/18 01:21",
+      "url": "https://ameblo.jp/cocophotsession/entry-12977113698.html",
+      "kind": "individual_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_post",
+          "url": "https://ameblo.jp/cocophotsession/entry-12977113698.html"
+        }
+      ]
+    },
+    {
+      "date": "2026/09/24",
+      "title": "Fresh フォトセッション「animal」",
+      "venue": "フレッシュサンガイstudio",
+      "status": "予約不要",
+      "details": "",
+      "checked_at": "2026/11/18 01:21",
+      "url": "https://www.fresh-club.net/akb/detail/5283",
+      "kind": "group_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://www.fresh-club.net/akb/detail/5283"
+        }
+      ]
+    },
+    {
+      "date": "2026/10/04",
+      "title": "フレッシュフェス2026 ～The FINAL～",
+      "venue": "アルネットホームスマイルパークしらこばと",
+      "status": "予約状況：未確認",
+      "details": "",
+      "checked_at": "2026/11/18 01:21",
+      "url": "https://www.fresh-club.net/special/detail/1587",
+      "kind": "group_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://www.fresh-club.net/special/detail/1587"
+        }
+      ]
+    },
+    {
+      "date": "2026/10/09",
+      "title": "Fresh フォトセッション「flower」",
+      "venue": "フレッシュサンガイstudio",
+      "status": "予約不要",
+      "details": "",
+      "checked_at": "2026/11/18 01:21",
+      "url": "https://www.fresh-club.net/akb/detail/5298",
+      "kind": "group_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://www.fresh-club.net/akb/detail/5298"
+        }
+      ]
+    },
+    {
+      "date": "2026/10/25",
+      "title": "Fresh スペシャル大撮影会",
+      "venue": "Booty東京",
+      "status": "予約状況：未確認",
+      "details": "",
+      "checked_at": "2026/11/18 01:21",
+      "url": "https://www.fresh-club.net/special/detail/1589",
+      "kind": "group_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://www.fresh-club.net/special/detail/1589"
+        }
+      ]
+    },
+    {
+      "date": "2026/11/06",
+      "title": "Fresh フォトセッション「dressy」",
+      "venue": "フレッシュロッカイstudio",
+      "status": "予約不要",
+      "details": "",
+      "checked_at": "2026/11/18 01:21",
+      "url": "https://www.fresh-club.net/akb/detail/5336",
+      "kind": "group_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://www.fresh-club.net/akb/detail/5336"
+        }
+      ]
+    },
+    {
+      "date": "2026/11/19",
+      "title": "Fresh フォトセッション「レトロ浪漫ガール」",
+      "venue": "フレッシュロッカイstudio",
+      "status": "予約不要",
+      "details": "",
+      "checked_at": "2026/11/18 01:21",
+      "url": "https://www.fresh-club.net/akb/detail/5349",
+      "kind": "group_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://www.fresh-club.net/akb/detail/5349"
+        }
+      ]
+    },
+    {
+      "date": "2026/11/21",
+      "title": "Fresh スペシャル大撮影会",
+      "venue": "Booty東京",
+      "status": "予約状況：未確認",
+      "details": "",
+      "checked_at": "2026/11/18 01:21",
+      "url": "https://www.fresh-club.net/special/detail/1601",
+      "kind": "group_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://www.fresh-club.net/special/detail/1601"
+        }
+      ]
+    },
+    {
+      "date": "2026/12/12",
+      "title": "CHANCE 雪餅羽もえ 名古屋撮影会",
+      "venue": "名古屋（会場未確認）",
+      "status": "予約状況：未確認",
+      "details": "",
+      "checked_at": "2026/11/18 01:21",
+      "url": "https://photo-session-chance.com/2026/10/12/2026-12-12%E5%9C%9F-%E9%9B%AA%E9%A4%85%E7%BE%BD%E3%82%82%E3%81%88%E5%90%8D%E5%8F%A4%E5%B1%8B%E6%92%AE%E5%BD%B1%E4%BC%9A/",
+      "kind": "individual_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://photo-session-chance.com/2026/10/12/2026-12-12%E5%9C%9F-%E9%9B%AA%E9%A4%85%E7%BE%BD%E3%82%82%E3%81%88%E5%90%8D%E5%8F%A4%E5%B1%8B%E6%92%AE%E5%BD%B1%E4%BC%9A/"
+        }
+      ]
+    }
+  ],
+  "source_accounts": [
+    {
+      "name": "雪餅羽もえ X",
+      "url": "https://x.com/moe_moechan121",
+      "confirmed_by": "https://www.fresh-club.net/akb/detail/5349"
+    },
+    {
+      "name": "Fresh撮影会 X",
+      "url": "https://x.com/fresh_akiba",
+      "confirmed_by": "https://www.fresh-club.net/"
+    },
+    {
+      "name": "CHANCE撮影会 X",
+      "url": "https://x.com/P_C_CHANCE",
+      "confirmed_by": "https://photo-session-chance.com/"
+    },
+    {
+      "name": "ことり撮影会 X",
+      "url": "https://x.com/cotosatsu",
+      "confirmed_by": "https://photo-f.cotori-pr.com/"
+    },
+    {
+      "name": "COCO撮影会 公式ブログ",
+      "url": "https://ameblo.jp/cocophotsession/",
+      "confirmed_by": "https://ameblo.jp/cocophotsession/entry-12977113698.html"
     }
   ]
 }
