@@ -105,15 +105,16 @@ function show(data) {
     if (past || !repeatsSlotStatus(item.status || '未確認', slots)) {
       card.append(element('span', past ? '開催日経過' : item.status || '予約状況：未確認', 'badge'));
     }
-    if (item.venue) card.append(element('p', '会場：' + item.venue));
+    card.append(element('p', '会場：' + (item.venue || '未確認')));
     card.append(renderSlots(slots, past));
     const details = cardDetails(item.details, slots);
-    if (details) card.append(element('p', details));
+    if (details) card.append(element('p', '補足：' + details));
     card.append(element('p', '確認日時：' + (item.checked_at || '未確認') + (item.checked_at ? '（日本時間）' : ''), 'meta'));
     if (!past && Number.isFinite(checked) && Date.now() - checked >= 86400000) {
       card.append(element('p', '確認から24時間以上経過', 'meta stale'));
     }
     const url = safeUrl(item.url);
+    if (!url) card.append(element('p', '主催者ページ：未確認', 'meta'));
     if (url) { const a = element('a', '主催者の詳細ページ ↗', 'official'); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; card.append(a); }
     events.append(card);
   }
