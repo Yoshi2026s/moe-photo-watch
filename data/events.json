@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026/11/18 03:26",
+  "updated_at": "2026/11/18 03:35",
   "events": [
     {
       "date": "2026/11/15",
@@ -560,6 +560,23 @@
         {
           "kind": "official_post",
           "url": "https://x.com/moe_moechan121/status/2098659409027305838"
+        }
+      ]
+    },
+    {
+      "date": "2026/09/13",
+      "title": "COCO撮影会 休日フォトセッション「競泳×マイクロ」",
+      "venue": "TIARAStudio（大阪）",
+      "status": "出演中止",
+      "details": "中止条件：個人撮影が催行予約数に満たなかったため出演取り消し。",
+      "checked_at": "2026/11/18 03:35",
+      "url": "https://ameblo.jp/cocophotsession/entry-12977722698.html",
+      "kind": "group_photo",
+      "slots": [],
+      "sources": [
+        {
+          "kind": "official_post",
+          "url": "https://ameblo.jp/cocophotsession/entry-12977722698.html"
         }
       ]
     }
