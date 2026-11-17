@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026/11/18 01:27",
+  "updated_at": "2026/11/18 01:46",
   "events": [
     {
       "date": "2026/11/15",
@@ -253,7 +253,7 @@
       "venue": "Booty東京",
       "status": "予約状況：未確認",
       "details": "",
-      "checked_at": "2026/11/18 01:21",
+      "checked_at": "2026/11/18 01:46",
       "url": "https://www.fresh-club.net/special/detail/1601",
       "kind": "group_photo",
       "slots": [],
@@ -265,6 +265,10 @@
         {
           "kind": "official_post",
           "url": "https://x.com/moe_moechan121/status/2118377177360261410"
+        },
+        {
+          "kind": "official_post",
+          "url": "https://x.com/fresh_akiba/status/2114713764088172571"
         }
       ]
     },
