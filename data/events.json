@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026/11/18 02:45",
+  "updated_at": "2026/11/18 03:16",
   "events": [
     {
       "date": "2026/11/15",
@@ -516,6 +516,11 @@
       "name": "COCO撮影会 X",
       "url": "https://x.com/c_o_c_o_p_s",
       "confirmed_by": "https://cocophotosession.com/"
+    },
+    {
+      "name": "雪餅羽もえ Threads",
+      "url": "https://threads.com/@moe_moe121",
+      "confirmed_by": "https://www.instagram.com/moe_moe121/"
     }
   ]
 }
