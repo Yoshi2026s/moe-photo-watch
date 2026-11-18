@@ -44,7 +44,7 @@ test('料金・日付・全枠・確認日時を保ち、未確認の詳細やUR
 test('×・満席・締切の根拠を区別し、予約不要の予定には古い枠を出さない', () => {
   const now = at('2026-11-18T14:00');
   const slots = [{label:'第1部',status:'空き'}];
-  for (const [raw, label] of [['×（公式表示）','×（公式表示）'],['予約不可','予約不可'],['受付終了','受付終了'],['キャンセル待ち','キャンセル待ち']]) {
+  for (const [raw, label] of [['予約不可','予約不可'],['受付終了','受付終了'],['キャンセル待ち','キャンセル待ち']]) {
     assert.deepEqual(slotBadge(raw), {label, variant:'unavailable'});
   }
   for (const status of ['予約受付終了','満席','キャンセル待ち','開催中止']) {
@@ -65,15 +65,19 @@ test('×・満席・締切の根拠を区別し、予約不要の予定には古
 
 test('埋まった枠は予約済と表記し、個別の予約とイベント全体の締切を区別する', () => {
   const now = at('2026-11-18T14:00');
-  for (const raw of ['予約済','予約済み','満枠','満席','完売','SOLD OUT（満枠）']) {
+  for (const raw of ['予約済','予約済み','満枠','満席','完売','SOLD OUT（満枠）','×','×（公式表示）']) {
     assert.deepEqual(slotBadge(raw), {label:'予約済',variant:'unavailable'});
   }
-  const slots = event.slots.map(slot => ({...slot,status:'満枠'}));
+  assert.equal(slotBadge('×（公式表示）', 'individual_photo').label, '予約済');
+  assert.equal(slotBadge('×（公式表示）', 'group_photo').label, '×（公式表示）');
+  const slots = event.slots.map(slot => ({...slot,status:'×（公式表示）'}));
   const full = announcementFacts({...event,slots},now);
   assert.equal(full.banner,'掲載枠はすべて予約済（確認時点）');
   assert.match(full.text,/第1部　13:00〜14:00　予約済\n/);
   assert.doesNotMatch(full.text,/予約不可|予約済み|受付終了/);
   const mixed = announcementFacts({...event,slots:[slots[0],{...slots[1],status:'受付終了'}]},now);
   assert.doesNotMatch(mixed.banner,/すべて予約済/);
-  assert.equal(announcementFacts({...event,slots,status:'予約受付終了'},now).banner,'予約受付終了');
+  const closed = announcementFacts({...event,kind:'individual_photo',slots,status:'予約受付終了'},now);
+  assert.equal(closed.banner,'予約受付終了');
+  assert.match(closed.text,/第1部　13:00〜14:00　予約済\n/);
 });

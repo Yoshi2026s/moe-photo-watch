@@ -1,4 +1,4 @@
-import { bookingState, jstTime, nextBookingChange, slotBadge, unavailableSlotsSummary } from './reservation.mjs?v=slot-label-2';
+import { bookingState, jstTime, nextBookingChange, slotBadge, unavailableSlotsSummary } from './reservation.mjs?v=slot-label-3';
 import { dayParts } from './event-date.mjs';
 import { element, makeCalendar } from './event-calendar.mjs';
 const events = document.querySelector('#events'), updated = document.querySelector('#updated'), refresh = document.querySelector('#refresh');
@@ -72,7 +72,7 @@ function slotStart(time) {
   return start ? Number(start[1]) * 60 + Number(start[2]) : Number.MAX_SAFE_INTEGER;
 }
 
-function renderSlots(valid, record) {
+function renderSlots(valid, record, eventKind) {
   const section = element('div', '', 'reservation-slots');
   section.append(element('h4', record ? '予約枠（確認時点の記録）' : '予約枠（確認時点）'));
   if (!valid.length) {
@@ -88,7 +88,7 @@ function renderSlots(valid, record) {
     return { slot, timing, start: slotStart(normalized) };
   }).sort((a, b) => a.start - b.start);
   for (const { slot, timing } of ordered) {
-    const status = slotBadge(slot.status);
+    const status = slotBadge(slot.status, eventKind);
     const highlight = !record && status.variant === 'available' ? ' slot-row--available' : '';
     const row = element('li', '', 'slot-row' + highlight);
     row.append(element('strong', slot.label), element('span', timing, 'slot-time'), element('span', status.label, 'slot-status slot-status--' + (record ? 'record' : status.variant)));
@@ -140,7 +140,7 @@ function eventCard(item, today, past, compact = false) {
   if (availableCount) top.append(element('span', '空き' + availableCount + '枠（確認時点）', 'badge availability-count'));
   card.append(top, element('h3', item.title || '撮影会'));
   if (state.label || !availableCount && (compact || !repeatsSlotStatus(item.status || '未確認', slots))) {
-    const compactSummary = compact && state.slotMode === 'current' ? unavailableSlotsSummary(slots) : '';
+    const compactSummary = compact && state.slotMode === 'current' ? unavailableSlotsSummary(slots, item.kind) : '';
     card.append(element('span', compactSummary || state.label || item.status || '予約状況：未確認', 'badge'));
   }
   card.append(element('p', '会場：' + (item.venue || '未確認')));
@@ -159,7 +159,7 @@ function eventCard(item, today, past, compact = false) {
     return card;
   }
   if (state.slotMode !== 'omit' && (slots.length || (!state.cancelled && (!item.kind || item.kind === 'individual_photo')))) {
-    card.append(renderSlots(slots, state.slotMode === 'record'));
+    card.append(renderSlots(slots, state.slotMode === 'record', item.kind));
   }
   const details = cardDetails(item.details, slots);
   if (details) card.append(element('p', '補足：' + details));
@@ -198,7 +198,7 @@ function eventCard(item, today, past, compact = false) {
   make.addEventListener('click', async () => {
     make.disabled = true;
     try {
-      const { openAnnouncement } = await import('./announcement-ui.mjs?v=poster-long-press-1');
+      const { openAnnouncement } = await import('./announcement-ui.mjs?v=slot-label-3');
       openAnnouncement(item);
     } catch {
       make.textContent = '告知画面を再読み込み';

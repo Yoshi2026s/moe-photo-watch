@@ -1,5 +1,5 @@
-import { nextBookingChange } from './reservation.mjs?v=slot-label-2';
-import { announcementFacts } from './announcement-facts.mjs?v=slot-label-2';
+import { nextBookingChange } from './reservation.mjs?v=slot-label-3';
+import { announcementFacts } from './announcement-facts.mjs?v=slot-label-3';
 import { nextDesign, renderPosters } from './announcement-poster.mjs?v=booking-poster-1';
 
 const dialog = document.querySelector('#announcement');
