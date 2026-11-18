@@ -1,4 +1,4 @@
-import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=single-poster-1';
+import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=reference-1';
 
 const editor = document.querySelector('#poster-editor');
 const preview = editor.querySelector('.poster-edit-preview');
