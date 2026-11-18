@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { announcementFacts } from '../announcement-facts.mjs';
+import { bookingState, slotBadge } from '../reservation.mjs';
 import { nextDesign } from '../announcement-poster.mjs';
 
 const event = {title:'撮影会',date:'2026/11/21',checked_at:'2026/11/17 12:30',
@@ -37,4 +38,27 @@ test('料金・日付・全枠・確認日時を保ち、未確認の詳細やUR
     assert.notEqual(next.id,design?.id);
     design = next;
   }
+});
+
+
+test('×・満席・締切の根拠を区別し、予約不要の予定には古い枠を出さない', () => {
+  const now = at('2026-11-18T14:00');
+  const slots = [{label:'第1部',status:'空き'}];
+  for (const [raw, label] of [['×（公式表示）','予約不可'],['予約不可','予約不可'],['満席','満席'],['受付終了','受付終了'],['予約済み','予約済み']]) {
+    assert.deepEqual(slotBadge(raw), {label, variant:'unavailable'});
+  }
+  for (const status of ['予約受付終了','満席','キャンセル待ち','開催中止']) {
+    const data = {...event,status,slots};
+    assert.equal(bookingState(data,now).slotMode,'record');
+    assert.match(announcementFacts(data,now).text,/確認時点の記録/);
+    assert.doesNotMatch(announcementFacts(data,now).banner,/空き/);
+  }
+  const free = announcementFacts({...event,status:'予約不要',slots,url:'https://example.org/events/1'},now);
+  assert.equal(free.banner,'予約不要');
+  assert.doesNotMatch(free.text,/予約枠|第1部|空き/);
+  assert.match(free.text,/\nhttps:\/\/example.org\/events\/1\n/);
+  assert.match(free.text,/\nhttps:\/\/lit.link\/nowan_moe0121\n/);
+  assert.equal(bookingState({date:'2026/11/17',status:'未確認'},now).label,'開催日経過');
+  assert.equal(bookingState({...event,status:'予約不要？'},now).label,'');
+  assert.equal(announcementFacts({...event,slots},now).banner,'空き1枠（確認時点）');
 });
