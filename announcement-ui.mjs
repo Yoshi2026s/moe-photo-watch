@@ -1,7 +1,7 @@
 import { nextBookingChange } from './reservation.mjs?v=gallery-1';
 import { announcementFacts } from './announcement-facts.mjs?v=gallery-1';
-import { nextDesign, posterThemeGroups, posterThemes, renderPosters } from './announcement-poster.mjs?v=studio-1';
-import { openPosterEditor } from './poster-editor.mjs?v=studio-1';
+import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=single-poster-1';
+import { openPosterEditor } from './poster-editor.mjs?v=single-poster-1';
 import { posterPhotos } from './poster-photos.mjs';
 
 const dialog = document.querySelector('#announcement');
@@ -22,7 +22,7 @@ const pickerStatus = picker.querySelector('.poster-picker-status');
 const blankButton = picker.querySelector('.blank-photo');
 const fileInput = picker.querySelector('input[type=file]');
 const lastDesign = new Map();
-let event, request = 0, uploaded = null, blank = false, previousPhoto = '', downloads = [];
+let event, request = 0, uploaded = null, blank = false, previousPhoto = '', downloadUrl = '';
 const posterFiles = new WeakMap();
 let displayedText = '', design, photoChoice, crop;
 let press, saveMenuTimer;
@@ -77,9 +77,9 @@ dialog.addEventListener('scroll', clearPress, { passive: true });
 window.addEventListener('blur', clearPress);
 document.addEventListener('visibilitychange', () => { if (document.hidden) clearPress(); });
 
-function releaseDownloads() {
-  for (const url of downloads) URL.revokeObjectURL(url);
-  downloads = [];
+function releaseDownload() {
+  if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+  downloadUrl = '';
 }
 
 function posterImageSource(blob) {
@@ -91,7 +91,7 @@ function posterImageSource(blob) {
   });
 }
 
-function posterActions(file, url, downloadLabel) {
+function posterActions(file, url) {
   const actions = document.createElement('div');
   actions.className = 'poster-actions';
   if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
@@ -110,7 +110,7 @@ function posterActions(file, url, downloadLabel) {
   const download = document.createElement('a');
   download.href = url;
   download.download = file.name;
-  download.textContent = downloadLabel;
+  download.textContent = 'PNGをダウンロード';
   actions.append(open,download);
   return actions;
 }
@@ -188,7 +188,7 @@ async function openPicker(mode) {
     const facts = announcementFacts(event);
     for (const [key, theme] of Object.entries(posterThemes)) {
       const candidate = design.key === key ? design : nextDesign(facts,null,key);
-      const [thumbnail] = renderPosters(facts,candidate,photo,format.value,{ thumbnail: true, crop });
+      const thumbnail = renderPoster(facts,candidate,photo,format.value,{ previewScale: .2, crop });
       thumbnail.setAttribute('aria-hidden','true');
       const choice = thumbnailChoice(theme.label,thumbnail,design.key === key,() => {
         design = candidate;
@@ -221,7 +221,7 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
   feedback.textContent = '告知画像を作成中…';
   clearPress();
   preview.replaceChildren();
-  releaseDownloads();
+  releaseDownload();
   editButton.disabled = shuffle.disabled = true;
   try {
     const photo = await photoChoice;
@@ -229,31 +229,27 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
     const reference = photo && !uploaded ? posterPhotos.find(ref => photo.src.endsWith('/'+ref.src)) : null;
     if (reference) previousPhoto = reference.src;
     choosePhotoButton.querySelector('small').textContent = reference?.label || (photo ? '端末の写真' : '空欄');
-    const pages = renderPosters(facts, design, photo, format.value, { crop });
-    const blobs = await Promise.all(pages.map(canvas => new Promise((resolve,reject) =>
-      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('PNG')), 'image/png'))));
+    const canvas = renderPoster(facts,design,photo,format.value,{ crop });
+    const blob = await new Promise((resolve,reject) =>
+      canvas.toBlob(output => output ? resolve(output) : reject(new Error('PNG')), 'image/png'));
     if (id !== request) return;
-    const imageSources = await Promise.all(blobs.map(posterImageSource));
+    const source = await posterImageSource(blob);
     if (id !== request) return;
-    for (const [index,blob] of blobs.entries()) {
-      const url = URL.createObjectURL(blob);
-      downloads.push(url);
-      const pic = document.createElement('img');
-      pic.src = imageSources[index] || url;
-      pic.alt = facts.title + 'の告知画像 ' + (index+1) + '枚目。内容はSNS投稿文でも確認できます。';
-      const name = [event.date?.replaceAll('/','-'),facts.title,index+1].join('_').replace(/[\\/:*?"<>|]/g,'-') + '.png';
-      const file = new File([blob],name,{ type: 'image/png' });
-      const downloadLabel = 'PNGをダウンロード' + (pages.length > 1 ? '（' + (index+1) + '／' + pages.length + '）' : '');
-      const figure = document.createElement('figure');
-      posterFiles.set(figure,file);
-      const status = document.createElement('p');
-      status.className = 'poster-action-status';
-      status.setAttribute('role','status');
-      figure.append(pic,posterActions(file,url,downloadLabel),status);
-      preview.append(figure);
-    }
+    downloadUrl = URL.createObjectURL(blob);
+    const pic = document.createElement('img');
+    pic.src = source || downloadUrl;
+    pic.alt = facts.title + 'の告知画像。内容はSNS投稿文でも確認できます。';
+    const name = [event.date?.replaceAll('/','-'),facts.title].join('_').replace(/[\\/:*?"<>|]/g,'-') + '.png';
+    const file = new File([blob],name,{ type: 'image/png' });
+    const figure = document.createElement('figure');
+    posterFiles.set(figure,file);
+    const status = document.createElement('p');
+    status.className = 'poster-action-status';
+    status.setAttribute('role','status');
+    figure.append(pic,posterActions(file,downloadUrl),status);
+    preview.replaceChildren(figure);
     lastDesign.set(key,design);
-    feedback.textContent = photo ? '告知画像を' + pages.length + '枚作成しました。' : '写真を挿入できる空欄で作成しました。';
+    feedback.textContent = photo ? '告知画像を作成しました。' : '写真を挿入できる空欄で作成しました。';
   } catch {
     if (id === request) feedback.textContent = '画像を作成できませんでした。投稿文はコピーできます。';
   } finally {
@@ -305,7 +301,7 @@ dialog.addEventListener('close',() => {
   photoChoice = null;
   uploaded = null;
   preview.replaceChildren();
-  releaseDownloads();
+  releaseDownload();
 });
 function refreshBooking() {
   if (!dialog.open) return;
