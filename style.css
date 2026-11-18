@@ -121,7 +121,7 @@ body:has(dialog[open]) { overflow: hidden; }
 .calendar-day { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; width: 100%; padding: 4px 0; font-variant-numeric: tabular-nums; line-height: 1.4; }
 button.calendar-day { min-height: 55px; border: 0; border-radius: 0; background: #fff2f7; }
 .day-count { font-size: .7rem; font-weight: 700; }
-.calendar-day .full-booking { max-width: 100%; padding: 1px 2px; border: 1px solid white; font-size: .625rem; overflow-wrap: anywhere; }
+.calendar-day .full-booking { max-width: 100%; padding: 1px 2px; border: 1px solid white; font-size: .625rem; word-break: keep-all; }
 .calendar-day[aria-current=date] .day-number { text-decoration: underline 2px; text-underline-offset: 2px; }
 .calendar-day[aria-pressed=true] { background: #83395b; color: white; }
 .calendar-day:focus-visible { outline-offset: -3px; outline-color: #382534; }

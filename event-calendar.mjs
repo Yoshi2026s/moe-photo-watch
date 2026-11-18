@@ -89,7 +89,9 @@ export function makeCalendar(items, today, makeCard, isFullyBooked) {
           contents.setAttribute('aria-label', dayParts(date).label + '、' + entries.length + '件の予定' + fullLabel);
           contents.append(element('span', entries.length + '件', 'day-count'));
           if (full.size) {
-            contents.append(element('span', full.size === entries.length ? '満枠' : '満枠あり', 'badge full-booking'));
+            const badge = element('span', '満枠', 'badge full-booking');
+            if (full.size < entries.length) badge.append(document.createElement('wbr'), 'あり');
+            contents.append(badge);
           }
           const titles = entries.map(item => (full.has(item) ? '【満枠】' : '') + (item.title || '撮影会'));
           contents.title = titles.join('\n');
