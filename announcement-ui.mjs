@@ -1,6 +1,7 @@
 import { nextBookingChange } from './reservation.mjs?v=gallery-1';
 import { announcementFacts } from './announcement-facts.mjs?v=gallery-1';
-import { nextDesign, posterThemes, renderPosters } from './announcement-poster.mjs?v=thumbnail-picker-1';
+import { nextDesign, posterThemeGroups, posterThemes, renderPosters } from './announcement-poster.mjs?v=studio-1';
+import { openPosterEditor } from './poster-editor.mjs?v=studio-1';
 import { posterPhotos } from './poster-photos.mjs';
 
 const dialog = document.querySelector('#announcement');
@@ -12,17 +13,27 @@ const copy = dialog.querySelector('.copy-message');
 const format = dialog.querySelector('#poster-format');
 const choosePhotoButton = dialog.querySelector('.choose-photo');
 const chooseDesignButton = dialog.querySelector('.choose-design');
+const editButton = dialog.querySelector('.edit-poster');
 const picker = document.querySelector('#poster-picker');
 const pickerHeading = picker.querySelector('h2');
 const choices = picker.querySelector('.poster-choices');
+const themeFilter = picker.querySelector('.theme-filter select');
 const pickerStatus = picker.querySelector('.poster-picker-status');
 const blankButton = picker.querySelector('.blank-photo');
 const fileInput = picker.querySelector('input[type=file]');
 const lastDesign = new Map();
 let event, request = 0, uploaded = null, blank = false, previousPhoto = '', downloads = [];
-let displayedText = '', design, photoChoice;
+let displayedText = '', design, photoChoice, crop;
 let press, saveMenuTimer;
 let selectedTheme = '', selectedPhoto = '', pickerMode, pickerRequest = 0;
+
+themeFilter.add(new Option('すべて',''));
+for (const group of Object.keys(posterThemeGroups)) themeFilter.add(new Option(group,group));
+function filterDesigns() {
+  const group = posterThemeGroups[themeFilter.value];
+  for (const choice of choices.children) choice.hidden = Boolean(group && !group.includes(choice.dataset.theme));
+}
+themeFilter.addEventListener('change',filterDesigns);
 
 function clearPress() {
   press = null;
@@ -127,6 +138,7 @@ async function openPicker(mode) {
   pickerMode = mode;
   pickerHeading.textContent = mode === 'photo' ? '写真を選ぶ' : 'デザインを選ぶ';
   blankButton.hidden = fileInput.parentElement.hidden = mode !== 'photo';
+  themeFilter.parentElement.hidden = mode === 'photo';
   choices.replaceChildren();
   showPickerStatus('');
   picker.showModal();
@@ -149,14 +161,17 @@ async function openPicker(mode) {
     const facts = announcementFacts(event);
     for (const [key, theme] of Object.entries(posterThemes)) {
       const candidate = design.key === key ? design : nextDesign(facts,null,key);
-      const [thumbnail] = renderPosters(facts,candidate,photo,format.value,{ thumbnail: true });
+      const [thumbnail] = renderPosters(facts,candidate,photo,format.value,{ thumbnail: true, crop });
       thumbnail.setAttribute('aria-hidden','true');
-      choices.append(thumbnailChoice(theme.label,thumbnail,design.key === key,() => {
+      const choice = thumbnailChoice(theme.label,thumbnail,design.key === key,() => {
         design = candidate;
         selectedTheme = key;
         generate();
-      }));
+      });
+      choice.dataset.theme = key;
+      choices.append(choice);
     }
+    filterDesigns();
     showPickerStatus('');
   } catch {
     if (id === pickerRequest && picker.open) showPickerStatus('デザインのプレビューを表示できませんでした。');
@@ -170,21 +185,24 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
   if (newDesign) design = nextDesign(facts,lastDesign.get(key),selectedTheme);
   chooseDesignButton.querySelector('small').textContent = posterThemes[design.key].label;
   if (newPhoto) choosePhotoButton.querySelector('small').textContent = '読み込み中…';
-  if (newPhoto) photoChoice = choosePhoto();
+  if (newPhoto) {
+    crop = null;
+    photoChoice = choosePhoto();
+  }
   displayedText = facts.text;
   message.value = facts.text;
   feedback.textContent = '告知画像を作成中…';
   clearPress();
   preview.replaceChildren();
   releaseDownloads();
-  shuffle.disabled = true;
+  editButton.disabled = shuffle.disabled = true;
   try {
     const photo = await photoChoice;
     if (id !== request) return;
     const reference = photo && !uploaded ? posterPhotos.find(ref => photo.src.endsWith('/'+ref.src)) : null;
     if (reference) previousPhoto = reference.src;
     choosePhotoButton.querySelector('small').textContent = reference?.label || (photo ? '端末の写真' : '空欄');
-    const pages = renderPosters(facts, design, photo, format.value);
+    const pages = renderPosters(facts, design, photo, format.value, { crop });
     const blobs = await Promise.all(pages.map(canvas => new Promise((resolve,reject) =>
       canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('PNG')), 'image/png'))));
     if (id !== request) return;
@@ -209,7 +227,7 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
   } catch {
     if (id === request) feedback.textContent = '画像を作成できませんでした。投稿文はコピーできます。';
   } finally {
-    if (id === request) shuffle.disabled = false;
+    if (id === request) editButton.disabled = shuffle.disabled = false;
   }
 }
 
@@ -229,6 +247,19 @@ export function openAnnouncement(item) {
 shuffle.addEventListener('click',() => generate({ newDesign: true }));
 choosePhotoButton.addEventListener('click',() => openPicker('photo'));
 chooseDesignButton.addEventListener('click',() => openPicker('design'));
+editButton.addEventListener('click',async () => {
+  const id = request;
+  const photo = await photoChoice;
+  if (id !== request || !dialog.open) return;
+  openPosterEditor({
+    facts: announcementFacts(event), design, photo, format: format.value, crop,
+    apply(variant, framing) {
+      design = variant;
+      crop = framing;
+      generate();
+    }
+  });
+});
 picker.querySelector('.close-picker').addEventListener('click',() => picker.close());
 picker.addEventListener('close',() => {
   if (!picker.open) {

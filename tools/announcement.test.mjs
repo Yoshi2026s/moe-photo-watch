@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { announcementFacts } from '../announcement-facts.mjs';
 import { bookingState, slotBadge } from '../reservation.mjs';
-import { nextDesign, posterThemes } from '../announcement-poster.mjs';
+import { nextDesign, posterLayouts, posterThemeGroups, posterThemes, posterVariant } from '../announcement-poster.mjs';
 
 const event = {title:'撮影会',date:'2026/11/21',checked_at:'2026/11/17 12:30',
   details:'料金：各部12,000円、会場代1,000円。オプション：水着＋5,000円。',
@@ -99,4 +99,18 @@ test('告知デザインを指定すると選んだ系統の中で切り替わ�
     assert.equal(next.key,theme);
     assert.notEqual(next.id,first.id);
   }
+});
+
+test('各系統を一つの雰囲気に割り当て、配色・配置・反転を個別に選べる', () => {
+  const keys = Object.values(posterThemeGroups).flat();
+  assert.deepEqual(keys.slice().sort(),Object.keys(posterThemes).sort());
+  const variants = keys.flatMap(key => Object.keys(posterLayouts).flatMap(layout =>
+    posterThemes[key].palettes.flatMap((colors,index) => [false,true].map(left => {
+      const variant = posterVariant(key,index,left,layout);
+      assert.equal(variant.colors,colors);
+      assert.equal(variant.layout,layout);
+      assert.equal(variant.left,left);
+      return variant.id;
+    }))));
+  assert.equal(new Set(variants).size,480);
 });

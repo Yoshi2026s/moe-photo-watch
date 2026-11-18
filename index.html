@@ -2,7 +2,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/moe-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/moe-192.png">
-<link rel="stylesheet" href="style.css?v=thumbnail-picker-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
+<link rel="stylesheet" href="style.css?v=studio-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
 <fieldset id="event-view" class="view-picker">
   <legend>表示形式</legend>
   <div class="view-choices">
@@ -21,8 +21,9 @@
   <div class="design-tools">
     <button type="button" class="copy-message">投稿文をコピー</button>
     <button type="button" class="shuffle">デザインを変える</button>
+    <button type="button" class="edit-poster" aria-haspopup="dialog">細かく調整</button>
     <label class="format-label">画像サイズ<select id="poster-format">
-      <option value="story">縦長（9:16）</option><option value="feed">フィード（4:5）</option>
+      <option value="story">縦長（9:16）</option><option value="feed">フィード（4:5）</option><option value="square">正方形（1:1）</option>
     </select></label>
   </div>
   <div class="poster-pickers">
@@ -39,10 +40,36 @@
   <div class="dialog-heading"><h2 id="poster-picker-heading"></h2><button type="button" class="close-picker" autofocus>戻る</button></div>
   <div class="poster-picker-actions">
     <button type="button" class="auto-choice">おまかせで選ぶ</button>
+    <label class="format-label theme-filter" hidden>雰囲気<select></select></label>
     <button type="button" class="blank-photo">写真枠を空欄にする</button>
     <label class="upload-photo">端末の写真<input type="file" accept="image/jpeg,image/png,image/webp"></label>
   </div>
   <p class="poster-picker-status" role="status" hidden></p>
   <div class="poster-choices"></div>
 </dialog>
-<script type="module" src="app.js?v=thumbnail-picker-1"></script></body></html>
+<dialog id="poster-editor" aria-labelledby="poster-editor-heading">
+  <div class="dialog-heading"><h2 id="poster-editor-heading">告知画像の調整</h2><button type="button" class="cancel-poster-edit" autofocus>戻る</button></div>
+  <div class="poster-edit-body">
+    <div class="poster-edit-preview" aria-label="告知画像のプレビュー"></div>
+    <div class="poster-edit-controls">
+      <fieldset>
+        <legend>配色と配置</legend>
+        <div class="poster-palettes" role="group" aria-label="配色"></div>
+        <label class="format-label">配置<select id="poster-layout"></select></label>
+        <button type="button" class="flip-poster">左右を反転</button>
+      </fieldset>
+      <fieldset class="poster-crop">
+        <legend>写真の切り取り</legend>
+        <label class="photo-fit"><input type="checkbox" name="fit">写真全体を収める</label>
+        <label>拡大 <input type="range" name="zoom" min="1" max="2.5" step="0.05" value="1"></label>
+        <label>横位置 <input type="range" name="x" min="0" max="1" step="0.01" value="0.5"></label>
+        <label>縦位置 <input type="range" name="y" min="0" max="1" step="0.01" value="0.28"></label>
+      </fieldset>
+    </div>
+  </div>
+  <div class="poster-edit-actions">
+    <button type="button" class="reset-poster-edit">標準に戻す</button>
+    <button type="button" class="apply-poster-edit">反映する</button>
+  </div>
+</dialog>
+<script type="module" src="app.js?v=studio-1"></script></body></html>

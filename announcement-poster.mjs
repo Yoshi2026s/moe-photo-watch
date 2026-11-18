@@ -22,15 +22,73 @@ export const posterThemes = {
   ] },
   night: { label: '星空シネマ', frame: 'deco', stacked: true, palettes: [
     ['#15192f','#f1f2ff','#9daaf2'], ['#242044','#fff0f8','#d390d7'], ['#102d37','#ebfbf9','#72d0be']
+  ] },
+  pearl: { label: 'パールジュエル', frame: 'round', wide: true, pattern: 'pearls', palettes: [
+    ['#f6ecdf','#4b343f','#b87b8a'], ['#eef0f5','#38415b','#a188c0'], ['#eaf0e9','#304938','#8fa275']
+  ] },
+  noir: { label: 'モノクロシック', frame: 'offset', wide: true, bold: true, pattern: 'stripes', palettes: [
+    ['#181a20','#f9f7f3','#aeb5c5'], ['#1b2020','#f2efde','#b7a487'], ['#231c23','#f0edef','#bc92a5']
+  ] },
+  artdeco: { label: 'アールデコ・ベルベット', frame: 'deco', stacked: true, pattern: 'rays', palettes: [
+    ['#122e2b','#fff2cf','#dcb46e'], ['#302139','#fff4d5','#d9a364'], ['#34191e','#fff2d9','#c48656']
+  ] },
+  heart: { label: 'ハートメロウ', frame: 'round', stacked: true, pattern: 'hearts', palettes: [
+    ['#ffd7e4','#73243d','#dc6984'], ['#ffeddf','#703b34','#eb817d'], ['#e7dcfc','#583978','#a36abc']
+  ] },
+  candy: { label: 'キャンディチェック', frame: 'round', pattern: 'check', palettes: [
+    ['#ffe6ed','#6a284a','#e880b4'], ['#e2f8ef','#245449','#74c8af'], ['#e9ecff','#40376c','#9a94e2']
+  ] },
+  doll: { label: 'ドールパステル', frame: 'deco', stacked: true, pattern: 'pearls', palettes: [
+    ['#fdf1fb','#5b4058','#bc8aac'], ['#ebf2ff','#324878','#86a8e4'], ['#fff7e1','#5c4434','#cfab70']
+  ] },
+  comic: { label: 'コミックポスター', frame: 'offset', bold: true, pattern: 'rays', palettes: [
+    ['#fff2a3','#262944','#e44356'], ['#d2f1fc','#123452','#ed6848'], ['#fce0c7','#4b2455','#8a52cf']
+  ] },
+  neon: { label: 'ネオンステージ', frame: 'offset', wide: true, bold: true, pattern: 'grid', palettes: [
+    ['#20143b','#fff4fb','#f47ceb'], ['#102c33','#ecfff9','#58e2a8'], ['#17233f','#eefaff','#5baef9']
+  ] },
+  soda: { label: 'クリームソーダ', frame: 'round', layout: 'banner', bold: true, pattern: 'pearls', palettes: [
+    ['#c9f5e4','#164b42','#31ad91'], ['#f4e2ff','#533671','#b77dda'], ['#ffe8c3','#654022','#e38e51']
+  ] },
+  print: { label: 'カラーブロック', frame: 'offset', wide: true, bold: true, pattern: 'blocks', palettes: [
+    ['#fbebd0','#2e3449','#e35d49'], ['#eaeef5','#2f3656','#2d75da'], ['#daf4de','#244537','#22ac79']
+  ] },
+  coastal: { label: 'サンセットビーチ', frame: 'round', layout: 'banner', pattern: 'waves', palettes: [
+    ['#ffdcbf','#65382c','#df765b'], ['#d5f3f7','#23474c','#67bfc8'], ['#fce6cc','#614650','#d8819a']
+  ] },
+  paper: { label: '和紙モダン', frame: 'deco', layout: 'banner', pattern: 'stripes', palettes: [
+    ['#faf2de','#4d3828','#bf955e'], ['#e8f1e6','#324b3f','#7f9b7a'], ['#f8e5de','#643a43','#bb706d']
   ] }
 };
+
+export const posterThemeGroups = {
+  '華やか': ['glamour','editorial','pearl','noir','artdeco'],
+  'かわいい': ['cute','floral','heart','candy','doll'],
+  'POP': ['pop','comic','neon','soda','print'],
+  '季節・レトロ': ['retro','natural','night','coastal','paper']
+};
+
+export const posterLayouts = {
+  split: '左右並び',
+  feature: '左右並び・写真大',
+  stack: '中央に写真',
+  banner: '横長の写真'
+};
+
 const seasons = [
-  ['night','glamour','cute'], ['floral','cute','natural'],
-  ['pop','natural','editorial'], ['retro','glamour','editorial']
+  ['night','glamour','cute','noir'], ['floral','cute','natural','heart'],
+  ['pop','natural','editorial','soda','coastal'], ['retro','glamour','editorial','paper','artdeco']
 ];
 const serif = '"Yu Mincho","Hiragino Mincho ProN",serif';
 const sans = '"Yu Gothic","Hiragino Sans","Meiryo",sans-serif';
 const W = 1080;
+
+export function posterVariant(key, palette = 0, left = false, layout) {
+  const theme = posterThemes[key];
+  const defaultLayout = theme.layout || (theme.stacked ? 'stack' : theme.wide ? 'feature' : 'split');
+  layout ||= defaultLayout;
+  return { ...theme, key, palette, colors: theme.palettes[palette], left, layout, id: key + palette + left + layout };
+}
 
 export function nextDesign(facts, previous, selectedTheme) {
   const season = seasons[Math.floor(((facts.month || 1) % 12) / 3)];
@@ -45,8 +103,8 @@ export function nextDesign(facts, previous, selectedTheme) {
   const weighted = choices.flatMap(key => Array(special === key ? 5 : season.includes(key) ? 3 : 1).fill(key));
   const key = weighted[Math.floor(Math.random() * weighted.length)];
   const theme = posterThemes[key];
-  const variants = theme.palettes.flatMap((colors, i) =>
-    [false, true].map(left => ({ ...theme, key, colors, left, id: key + i + left })));
+  const variants = theme.palettes.flatMap((_, index) =>
+    [false, true].map(left => posterVariant(key,index,left)));
   const candidates = variants.filter(variant => variant.id !== previous?.id);
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
@@ -92,8 +150,59 @@ function backdrop(ctx, height, design) {
     }
   }
   ctx.restore();
+  texture(ctx,height,design.pattern,accent);
   ctx.fillStyle = ink;
   ctx.fillRect(0,0,W,12);
+}
+
+function texture(ctx, height, pattern, color) {
+  if (!pattern) return;
+  ctx.save();
+  ctx.fillStyle = ctx.strokeStyle = color;
+  ctx.globalAlpha = .19;
+  ctx.beginPath();
+  if (pattern === 'rays') {
+    ctx.lineWidth = 7;
+    for (let x = -260; x < W+400; x += 86) {
+      ctx.moveTo(W-68,60);
+      ctx.lineTo(x,350);
+    }
+    ctx.stroke();
+  } else if (pattern === 'waves') {
+    for (let y = height-325; y < height; y += 46) {
+      ctx.moveTo(10,y);
+      ctx.bezierCurveTo(300,y-140,770,y+120,W-10,y);
+    }
+    ctx.lineWidth = 4;
+    ctx.stroke();
+  } else if (pattern === 'blocks') {
+    ctx.fillRect(W-190,54,157,301);
+    ctx.fillRect(38,height-335,178,236);
+  } else {
+    for (let row = 0; row < 5; row++) {
+      for (let column = 0; column < 6; column++) {
+        const x = W-216+column*34, y = 148+row*36;
+        if (pattern === 'check' && (row+column) % 2 === 0) ctx.fillRect(x,y,32,32);
+        if (pattern === 'grid') ctx.strokeRect(x,y,30,30);
+        if (pattern === 'stripes') {
+          ctx.moveTo(x,y+18);
+          ctx.lineTo(x+22,y);
+        }
+        if (pattern === 'pearls') {
+          ctx.moveTo(x+7,y);
+          ctx.arc(x,y,7,0,2*Math.PI);
+        }
+        if (pattern === 'hearts') {
+          ctx.moveTo(x,y+11);
+          ctx.bezierCurveTo(x-22,y-7,x-7,y-16,x,y-7);
+          ctx.bezierCurveTo(x+7,y-16,x+22,y-7,x,y+11);
+        }
+      }
+    }
+    if (pattern === 'stripes') ctx.stroke();
+    else ctx.fill();
+  }
+  ctx.restore();
 }
 
 function lines(ctx, value, width) {
@@ -155,7 +264,7 @@ function motif(ctx, x, y, radius, key, color) {
   ctx.restore();
 }
 
-function portrait(ctx, photo, x, y, w, h, design) {
+function portrait(ctx, photo, x, y, w, h, design, crop) {
   const accent = design.colors[2];
   const radius = design.frame === 'round' ? 48 : 0;
   if (design.frame === 'offset') {
@@ -170,10 +279,16 @@ function portrait(ctx, photo, x, y, w, h, design) {
   ctx.beginPath();
   ctx.roundRect(x,y,w,h,radius);
   ctx.clip();
-  if (photo) {
-    const scale = Math.max(w / photo.naturalWidth, h / photo.naturalHeight);
+  if (photo && crop?.fit) {
+    const scale = Math.min(w / photo.naturalWidth,h / photo.naturalHeight);
+    const fittedWidth = photo.naturalWidth * scale, fittedHeight = photo.naturalHeight * scale;
+    ctx.fillStyle = design.colors[0];
+    ctx.fillRect(x,y,w,h);
+    ctx.drawImage(photo,x+(w-fittedWidth)/2,y+(h-fittedHeight)/2,fittedWidth,fittedHeight);
+  } else if (photo) {
+    const scale = Math.max(w / photo.naturalWidth, h / photo.naturalHeight) * (crop?.zoom || 1);
     const sw = w / scale, sh = h / scale;
-    ctx.drawImage(photo, (photo.naturalWidth-sw)/2,(photo.naturalHeight-sh)*.28,sw,sh,x,y,w,h);
+    ctx.drawImage(photo, (photo.naturalWidth-sw)*(crop?.x ?? .5),(photo.naturalHeight-sh)*(crop?.y ?? .28),sw,sh,x,y,w,h);
   } else {
     ctx.strokeStyle = accent;
     ctx.setLineDash([9,10]);
@@ -186,15 +301,19 @@ function portrait(ctx, photo, x, y, w, h, design) {
   ctx.restore();
 }
 
-export function renderPosters(facts, design, photo, format = 'story', { thumbnail = false } = {}) {
+export function renderPosters(facts, design, photo, format = 'story', { thumbnail = false, previewScale = .2, crop } = {}) {
   const story = format === 'story';
-  const H = story ? 1920 : 1350;
+  const square = format === 'square';
+  const H = story ? 1920 : square ? 1080 : 1350;
+  const banner = design.layout === 'banner';
+  const stacked = design.layout === 'stack' || banner;
+  const wide = design.layout === 'feature';
   const time = facts.rows.find(([label]) => label === '開催時間')?.[1] || '';
   const heroTime = time && [...time].length <= 18;
   const [, ink, accent] = design.colors;
   const headingFont = design.bold ? sans : serif;
   const pages = [];
-  const scale = thumbnail ? .2 : 1;
+  const scale = thumbnail ? previewScale : 1;
   let ctx, y;
   function startPage(first) {
     const canvas = document.createElement('canvas');
@@ -228,20 +347,21 @@ export function renderPosters(facts, design, photo, format = 'story', { thumbnai
       const extended = titleLines.length > 3;
       const heading = extended ? ['出演のご案内'] : titleLines;
       let baseline = ruleY + size + 28;
-      if (design.stacked) ctx.textAlign = 'center';
+      if (stacked) ctx.textAlign = 'center';
       for (const line of heading) {
-        ctx.fillText(line,design.stacked ? W/2 : 62,baseline);
+        ctx.fillText(line,stacked ? W/2 : 62,baseline);
         baseline += size + 12;
       }
       ctx.textAlign = 'left';
       const top = baseline - size + 24;
-      const pw = design.stacked ? (story ? 588 : 530) : story ? (design.wide ? 505 : 414) : (design.wide ? 425 : 340);
-      const ph = design.stacked ? (story ? 515 : 310) : story ? (design.wide ? 610 : 545) : (design.wide ? 320 : 275);
-      const px = design.stacked ? (W-pw)/2 : design.left ? 68 : W-68-pw;
-      const tx = design.stacked ? (design.left ? 62 : W/2+24) : design.left ? px+pw+56 : 62;
-      const tw = design.stacked ? W/2-86 : W-pw-192;
-      const infoTop = design.stacked ? top+ph+(photo ? 55 : 27) : top;
-      portrait(ctx,photo,px,top,pw,ph,design);
+      const pw = banner ? 930 : stacked ? (story ? 588 : 530) : story ? (wide ? 505 : 414) : (wide ? 425 : 340);
+      const height = banner ? (story ? 442 : 265) : stacked ? (story ? 515 : 310) : story ? (wide ? 610 : 545) : (wide ? 320 : 275);
+      const ph = square ? Math.min(height,225) : height;
+      const px = stacked ? (W-pw)/2 : design.left ? 68 : W-68-pw;
+      const tx = stacked ? (design.left ? 62 : W/2+24) : design.left ? px+pw+56 : 62;
+      const tw = stacked ? W/2-86 : W-pw-192;
+      const infoTop = stacked ? top+ph+(photo ? 55 : 27) : top;
+      portrait(ctx,photo,px,top,pw,ph,design,crop);
       if (photo) {
         ctx.font = '23px ' + sans;
         ctx.fillStyle = ink;
@@ -267,8 +387,8 @@ export function renderPosters(facts, design, photo, format = 'story', { thumbnai
         ctx.font = '700 ' + (story ? 38 : 32) + 'px ' + sans;
         const bannerLines = lines(ctx,facts.banner,tw-40);
         const lineHeight = story ? 52 : 43;
-        const bandX = design.stacked ? W-tx-tw : tx;
-        const bandY = infoTop + (design.stacked ? 82 : story ? 325 : heroTime ? 239 : 172);
+        const bandX = stacked ? W-tx-tw : tx;
+        const bandY = infoTop + (stacked ? 82 : story ? 325 : heroTime ? 239 : 172);
         const bandHeight = bannerLines.length * lineHeight + 18;
         ctx.fillStyle = ink;
         ctx.beginPath();
@@ -289,7 +409,7 @@ export function renderPosters(facts, design, photo, format = 'story', { thumbnai
         y = top+ph+72;
       }
       y = Math.max(y,top+ph+(photo ? 97 : 68));
-      if (design.stacked) y = Math.max(y,infoTop+(heroTime ? (story ? 340 : 279) : 228));
+      if (stacked) y = Math.max(y,infoTop+(heroTime ? (story ? 340 : 279) : 228));
       if (extended) row('イベント名',facts.title);
     } else {
       y = 155;
