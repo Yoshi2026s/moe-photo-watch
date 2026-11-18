@@ -71,3 +71,12 @@ export function announcementFacts(event, now = Date.now()) {
   ].filter(Boolean).join('\n\n');
   return { title, dateLabel, day: date, month: date?.month, rows, banner, note, checked, source, text };
 }
+
+export function announcementSkillPrompt(event, now = Date.now()) {
+  const facts = announcementFacts(event, now);
+  return [
+    '@create-moe-photo-announcements（雪餅羽もえ 撮影会告知画像）を使って、下記の撮影会の告知画像とSNS投稿文を作成・修正して。',
+    '主催者の公式情報と今回添付した最新資料を照合して。修正の指定がある場合は、添付した画像や投稿文の該当箇所を更新して。投稿文には公式URLとリットリンクを入れて。',
+    '【撮影会情報（サイト掲載時点の参考）】\n' + facts.text
+  ].join('\n\n');
+}
