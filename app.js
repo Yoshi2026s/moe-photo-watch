@@ -169,6 +169,20 @@ function show(data) {
       }
       card.append(links);
     }
+    const make = element('button', 'SNS告知を作る', 'make-announcement');
+    make.type = 'button';
+    make.addEventListener('click', async () => {
+      make.disabled = true;
+      try {
+        const { openAnnouncement } = await import('./announcement-ui.mjs');
+        openAnnouncement(item);
+      } catch {
+        make.textContent = '告知画面を再読み込み';
+      } finally {
+        make.disabled = false;
+      }
+    });
+    card.append(make);
     events.append(card);
   }
 }

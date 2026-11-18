@@ -56,3 +56,24 @@
   .slot-row .slot-time { grid-column: 2; }
   .slot-status { grid-column: 3; grid-row: 1; }
 }
+
+.intake { display: grid; justify-items: start; gap: 2px; margin: 0 0 18px; }
+.intake a, .poster-preview a { display: inline-flex; min-height: 48px; align-items: center; color: #853959; font-weight: 700; }
+.intake small, .photo-tools small { color: #675660; }
+.make-announcement { width: 100%; margin-top: 10px; background: #fff5f8; }
+#announcement { color: inherit; width: min(100% - 20px, 630px); max-height: 90vh; max-height: 90dvh; overflow: auto; overscroll-behavior: contain; padding: 0 18px max(22px, env(safe-area-inset-bottom)); border: 1px solid #dab7c8; border-radius: 18px; box-shadow: 0 12px 60px #3e213a33; }
+#announcement::backdrop { background: #35253599; }
+body:has(#announcement[open]) { overflow: hidden; }
+.dialog-heading { position: sticky; inset-block-start: 0; z-index: 1; background: white; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-block: 10px; border-bottom: 1px solid #eddae1; }
+.event-name { margin: 14px 0 10px; font-weight: 700; overflow-wrap: anywhere; }
+.design-tools { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+.design-tools summary { min-height: 48px; padding: 10px 4px; color: #83395b; font-weight: bold; cursor: pointer; }
+.photo-tools { display: grid; gap: 6px; max-width: 100%; padding: 6px; }
+.photo-tools label, .message-label { display: block; font-weight: 700; }
+.photo-tools input { display: block; width: 100%; max-width: 100%; min-height: 48px; font: inherit; font-size: .9rem; padding-block: 8px; }
+.announce-feedback { min-height: 1.6em; margin: 8px 0; color: #634454; }
+.poster-preview figure { margin: 0 0 18px; }
+.poster-preview img { display: block; width: 100%; height: auto; border: 1px solid #e2cfd8; }
+.poster-preview a { padding-inline: 12px; }
+#social-message { font: inherit; font-size: 1rem; width: 100%; margin: 5px 0; resize: vertical; border: 1px solid #a2788d; border-radius: 8px; padding: 10px; }
+.copy-message { background: #843b60; color: white; }

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026/11/18 11:34",
+  "updated_at": "2026/11/18 14:15",
   "events": [
     {
       "date": "2026/11/15",
@@ -53,7 +53,7 @@
       "venue": "スタジオグラフィティ",
       "status": "第1〜5部：公式ページで×表示",
       "details": "料金：予約12,000円、当日13,000円。オプション：動画撮影3,000円、サイン付きチェキ1枚2,000円。",
-      "checked_at": "2026/11/17 20:34",
+      "checked_at": "2026/11/18 14:15",
       "url": "https://photo-session-chance.com/2026/09/28/2026-11-28%E5%9C%9F-%E9%9B%AA%E9%A4%85%E7%BE%BD%E3%82%82%E3%81%88/",
       "slots": [
         {
@@ -91,7 +91,8 @@
           "kind": "official_post",
           "url": "https://x.com/moe_moechan121/status/2118377177360261410"
         }
-      ]
+      ],
+      "booking_opens_at": "2026/11/12 21:00"
     },
     {
       "date": "2026/11/21",
@@ -231,8 +232,8 @@
       "title": "Fresh フォトセッション「レトロ浪漫ガール」",
       "venue": "フレッシュロッカイstudio",
       "status": "予約不要",
-      "details": "",
-      "checked_at": "2026/11/18 01:21",
+      "details": "料金：1時間4,400円、3時間9,900円、終日15,400円（税込）。オプション：延長20分1,320円（税込）。",
+      "checked_at": "2026/11/18 14:15",
       "url": "https://www.fresh-club.net/akb/detail/5349",
       "kind": "group_photo",
       "slots": [],
@@ -245,15 +246,17 @@
           "kind": "official_post",
           "url": "https://x.com/moe_moechan121/status/2118377177360261410"
         }
-      ]
+      ],
+      "time": "14:00〜22:00",
+      "highlight": "浴衣や袴、昭和をイメージしたワンピースがテーマのフォトセッションです。"
     },
     {
       "date": "2026/11/21",
       "title": "Fresh スペシャル大撮影会",
       "venue": "Booty東京",
       "status": "予約不要",
-      "details": "",
-      "checked_at": "2026/11/18 10:02",
+      "details": "料金：当日1時間ごと5,000円、前売終日24,000円。枚数限定のU30終日券12,000円（開催月内に31歳の誕生日を迎える方まで）。オプション：当日2ショットチェキ1枚2,000円、ワイドチェキまたはメッセージ動画は各3,000円。",
+      "checked_at": "2026/11/18 14:15",
       "url": "https://www.fresh-club.net/special/detail/1601",
       "kind": "group_photo",
       "slots": [],
@@ -270,7 +273,9 @@
           "kind": "official_post",
           "url": "https://x.com/fresh_akiba/status/2114713764088172571"
         }
-      ]
+      ],
+      "time": "10:00〜16:00",
+      "highlight": "囲み撮影で、雪餅羽もえさんはC組に出演します。"
     },
     {
       "date": "2026/12/12",
@@ -441,7 +446,7 @@
       "kind": "event",
       "status": "予約状況：未確認",
       "details": "",
-      "checked_at": "2026/11/18 11:34",
+      "checked_at": "2026/11/18 14:15",
       "url": "https://x.com/moe_moechan121/status/2118377177360261410",
       "slots": [],
       "sources": [
@@ -452,8 +457,14 @@
         {
           "kind": "official_post",
           "url": "https://x.com/moe_moechan121/status/2118377177360261410"
+        },
+        {
+          "kind": "official_page",
+          "url": "https://www.sofmap.com/contents/?id=event&sid=schedule"
         }
-      ]
+      ],
+      "time": "18:30開始",
+      "booking_opens_at": "2026/11/02 21:00"
     },
     {
       "date": "2026/12/06",
