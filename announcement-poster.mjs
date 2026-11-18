@@ -8,7 +8,7 @@ const palettes = {
 };
 const serif = '"Yu Mincho","Hiragino Mincho ProN",serif';
 const sans = '"Yu Gothic","Hiragino Sans","Meiryo",sans-serif';
-const W = 1080, H = 1350;
+const W = 1080;
 
 export function nextDesign(facts, previous) {
   const m = facts.month || 1;
@@ -82,7 +82,11 @@ function portrait(ctx, photo, x, y, w, h, accent) {
   }
 }
 
-export function renderPosters(facts, design, photo) {
+export function renderPosters(facts, design, photo, format = 'story') {
+  const story = format === 'story';
+  const H = story ? 1920 : 1350;
+  const time = facts.rows.find(([label]) => label === '開催時間')?.[1] || '';
+  const heroTime = time && [...time].length <= 18;
   const [paper, ink, accent] = design.colors;
   const pages = [];
   let ctx, y;
@@ -96,42 +100,87 @@ export function renderPosters(facts, design, photo) {
     ctx.fillRect(0,0,W,H);
     ctx.fillStyle = ink;
     ctx.fillRect(0,0,W,12);
-    ctx.font = '600 24px Georgia,serif';
-    ctx.fillText('N O W A N    M O E',58,66);
-    ctx.font = '600 23px ' + sans;
+    ctx.font = '700 ' + (first ? 56 : 36) + 'px ' + serif;
+    ctx.fillText('雪餅羽もえ',62,first ? 100 : 66);
     ctx.textAlign = 'right';
-    ctx.fillText('雪餅羽もえ',W-58,66);
+    ctx.font = '24px Georgia,serif';
+    ctx.fillText('N O W A N   M O E',W-62,first ? 93 : 62);
     ctx.textAlign = 'left';
     ctx.strokeStyle = accent;
+    ctx.lineWidth = 2;
+    const ruleY = first ? 129 : 89;
     ctx.beginPath();
-    ctx.moveTo(58,89); ctx.lineTo(W-58,89); ctx.stroke();
+    ctx.moveTo(62,ruleY); ctx.lineTo(W-62,ruleY); ctx.stroke();
     if (first) {
-      const tx = design.left ? 472 : 60;
-      const px = design.left ? 66 : 663;
-      portrait(ctx,photo,px,132,350,337,accent);
-      if (photo) {
-        ctx.font = '22px ' + sans;
-        ctx.fillStyle = ink;
-        ctx.fillText('参考写真',px,508);
-      }
-      motif(ctx,tx + 45,184,28,design.key,accent);
-      ctx.fillStyle = ink;
-      let size = 51;
+      let size = story ? 68 : 54;
       let titleLines;
-      const groups = facts.title.replace(/\s*(?=[「（])/g,'\n').trim().split('\n');
+      const titleGroups = facts.title.split(/\s*(?=[「（])/u);
       do {
         ctx.font = '700 ' + size + 'px ' + serif;
-        titleLines = groups.flatMap(group => lines(ctx,group,545));
-        if (titleLines.length <= 4 && (size <= 42 || groups.every(g=>ctx.measureText(g).width<=545)) || size <= 31) break;
-        size -= 3;
+        titleLines = titleGroups.flatMap(group => lines(ctx,group.trim(),950));
+        if (titleLines.length <= 2 || size <= 38) break;
+        size -= 4;
       } while (true);
-      const shortTitle = titleLines.length > 4;
-      const heading = shortTitle ? ['出演のご案内'] : titleLines;
-      heading.forEach((line,i) => ctx.fillText(line,tx,273 + i * (size + 11)));
-      ctx.font = '700 33px ' + sans;
-      ctx.fillText(facts.dateLabel,tx,507);
-      y = 570;
-      if (shortTitle) row('イベント名',facts.title);
+      const extended = titleLines.length > 3;
+      const heading = extended ? ['出演のご案内'] : titleLines;
+      let baseline = ruleY + size + 28;
+      for (const line of heading) {
+        ctx.fillText(line,62,baseline);
+        baseline += size + 12;
+      }
+      const top = baseline - size + 24;
+      const pw = story ? 444 : 340, ph = story ? 550 : 275;
+      const px = design.left ? 68 : W-68-pw;
+      const tx = design.left ? px+pw+56 : 62;
+      const tw = W-pw-192;
+      portrait(ctx,photo,px,top,pw,ph,accent);
+      if (photo) {
+        ctx.font = '23px ' + sans;
+        ctx.fillStyle = ink;
+        ctx.fillText('参考写真',px,top+ph+39);
+      }
+      motif(ctx,tx+tw-28,top+32,26,design.key,accent);
+      ctx.fillStyle = ink;
+      ctx.font = '600 32px ' + sans;
+      if (facts.day) {
+        ctx.fillText(facts.day.year + '年　' + facts.day.weekday + '曜日',tx,top+45);
+        ctx.font = 'bold ' + (story ? 106 : 80) + 'px Georgia,serif';
+        ctx.fillText(facts.day.month + '.' + String(facts.day.day).padStart(2,'0'),tx,top+(story ? 165 : 133));
+      } else {
+        ctx.fillText(facts.dateLabel,tx,top+107);
+      }
+      if (heroTime) {
+        ctx.font = '600 25px ' + sans;
+        ctx.fillText('開催時間',tx,top+(story ? 219 : 175));
+        ctx.font = '700 ' + (story ? 41 : 32) + 'px ' + sans;
+        ctx.fillText(time,tx,top+(story ? 274 : 217),tw);
+      }
+      if (facts.banner) {
+        ctx.font = '700 ' + (story ? 38 : 32) + 'px ' + sans;
+        const bannerLines = lines(ctx,facts.banner,tw-40);
+        const lineHeight = story ? 52 : 43;
+        const bandY = top + (story ? 325 : heroTime ? 239 : 172);
+        const bandHeight = bannerLines.length * lineHeight + 18;
+        ctx.fillStyle = ink;
+        ctx.beginPath();
+        ctx.moveTo(tx,bandY);
+        ctx.lineTo(tx+tw,bandY);
+        ctx.lineTo(tx+tw-11,bandY+bandHeight/2);
+        ctx.lineTo(tx+tw,bandY+bandHeight);
+        ctx.lineTo(tx,bandY+bandHeight);
+        ctx.lineTo(tx+11,bandY+bandHeight/2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        bannerLines.forEach((line,i) => ctx.fillText(line,tx+tw/2,bandY+(i+1)*lineHeight-1));
+        ctx.textAlign = 'left';
+        y = bandY+bandHeight+70;
+      } else {
+        y = top+ph+72;
+      }
+      y = Math.max(y,top+ph+(photo ? 97 : 68));
+      if (extended) row('イベント名',facts.title);
     } else {
       y = 155;
       ctx.font = '700 32px ' + serif;
@@ -144,7 +193,7 @@ export function renderPosters(facts, design, photo) {
     }
   }
   function row(label, value) {
-    ctx.font = '600 34px ' + sans;
+    ctx.font = story ? '600 39px ' + sans : '600 34px ' + sans;
     const wrapped = lines(ctx,value,900);
     let i = 0;
     while (i < wrapped.length) {
@@ -152,26 +201,29 @@ export function renderPosters(facts, design, photo) {
       ctx.fillStyle = accent;
       ctx.fillRect(60,y-18,6,25);
       ctx.fillStyle = ink;
-      ctx.font = '700 25px ' + sans;
+      ctx.font = story ? '700 29px ' + sans : '700 25px ' + sans;
       ctx.fillText(label + (i ? '（続き）' : ''),83,y+2);
-      y += 49;
-      ctx.font = '600 34px ' + sans;
+      y += story ? 56 : 49;
+      ctx.font = story ? '600 39px ' + sans : '600 34px ' + sans;
       while (i < wrapped.length && y <= H - 105) {
         ctx.fillText(wrapped[i++],83,y);
-        y += 47;
+        y += story ? 57 : 47;
       }
       y += 19;
     }
   }
   startPage(true);
-  for (const [label,value] of facts.rows) row(label,value);
+  for (const [label,value] of facts.rows) {
+    if ((label === '受付' && value === facts.banner) || (label === '開催時間' && heroTime)) continue;
+    row(label,value);
+  }
   pages.forEach((canvas,i) => {
     const c = canvas.getContext('2d');
     c.fillStyle = ink;
     c.fillRect(0,H-92,W,92);
     c.fillStyle = '#fff';
-    c.font = '24px ' + sans;
-    if (facts.note) c.fillText(facts.note,58,H-55);
+    c.font = '27px ' + sans;
+    if (facts.note) c.fillText(facts.note,58,H-55,W-116);
     c.fillText(facts.checked ? '情報確認　' + facts.checked + '（日本時間）' : '最新情報は公式案内へ',58,H-19);
     c.textAlign = 'right';
     c.fillText((i+1) + ' / ' + pages.length,W-58,H-27);

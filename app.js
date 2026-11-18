@@ -1,3 +1,4 @@
+import { bookingState, jstTime, nextBookingChange, slotBadge } from './reservation.mjs';
 import { dayParts } from './event-date.mjs';
 import { element, makeCalendar } from './event-calendar.mjs';
 const events = document.querySelector('#events'), updated = document.querySelector('#updated'), refresh = document.querySelector('#refresh');
@@ -8,7 +9,7 @@ const viewPicker = document.querySelector('#event-view');
 const detailDialog = document.querySelector('#event-detail');
 const detailBody = detailDialog.querySelector('.detail-body');
 const viewKey = 'moe-photo-watch.eventView';
-let snapshot;
+let snapshot, detailItem, clockTimer, nextBoundary = Infinity;
 let hasData = false, lastConfirmation = '';
 function safeUrl(s) { try { const u = new URL(s); return u.protocol === 'https:' ? u.href : null; } catch { return null; } }
 function todayJst() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
@@ -21,16 +22,6 @@ function pastCutoff(today) {
   const lastDay = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
   first.setUTCDate(Math.min(day, lastDay));
   return first.toISOString().slice(0, 10);
-}
-function slotBadge(value) {
-  const status = typeof value === 'string' ? value.trim().normalize('NFKC') : '';
-  if (/^(?:空き|空きあり|予約可|予約可能|予約受付中|○|〇|◯)$/.test(status)) {
-    return { label: '空き', variant: 'available' };
-  }
-  if (/^(?:予約不可|予約済み|満枠|満席|受付終了|×(?:\(公式表示\))?)$/.test(status)) {
-    return { label: '予約済み', variant: 'unavailable' };
-  }
-  return { label: '未確認', variant: 'unknown' };
 }
 function validSlots(slots) {
   return Array.isArray(slots) ? slots.filter(slot =>
@@ -81,9 +72,9 @@ function slotStart(time) {
   return start ? Number(start[1]) * 60 + Number(start[2]) : Number.MAX_SAFE_INTEGER;
 }
 
-function renderSlots(valid, past) {
+function renderSlots(valid, record) {
   const section = element('div', '', 'reservation-slots');
-  section.append(element('h4', past ? '予約枠（掲載時点）' : '予約枠'));
+  section.append(element('h4', record ? '予約枠（確認時点の記録）' : '予約枠（確認時点）'));
   if (!valid.length) {
     section.append(element('p', '枠ごとの情報は未確認です。'));
     return section;
@@ -98,9 +89,9 @@ function renderSlots(valid, past) {
   }).sort((a, b) => a.start - b.start);
   for (const { slot, timing } of ordered) {
     const status = slotBadge(slot.status);
-    const highlight = !past && status.variant === 'available' ? ' slot-row--available' : '';
+    const highlight = !record && status.variant === 'available' ? ' slot-row--available' : '';
     const row = element('li', '', 'slot-row' + highlight);
-    row.append(element('strong', slot.label), element('span', timing, 'slot-time'), element('span', status.label, 'slot-status slot-status--' + status.variant));
+    row.append(element('strong', slot.label), element('span', timing, 'slot-time'), element('span', status.label, 'slot-status slot-status--' + (record ? 'record' : status.variant)));
     list.append(row);
   }
   section.append(list);
@@ -134,11 +125,11 @@ function show(data) {
 }
 function eventCard(item, today, past, compact = false) {
   const isToday = dateKey(item.date) === today;
-  const checked = typeof item.checked_at === 'string' && /^\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}$/.test(item.checked_at) ? Date.parse(item.checked_at.replaceAll('/', '-').replace(' ', 'T') + ':00+09:00') : NaN;
+  const checked = jstTime(item.checked_at);
   const card = element('article', '', compact ? 'card compact-card' : 'card');
-  const slots = validSlots(item.slots);
-  const cancelled = /^(?:開催中止|出演中止)/.test(item.status || '');
-  const availableCount = past || cancelled ? 0 : slots.filter(slot => slotBadge(slot.status).variant === 'available').length;
+  const state = bookingState(item);
+  const slots = state.slotMode === 'omit' ? [] : validSlots(item.slots);
+  const availableCount = state.slotMode === 'current' ? slots.filter(slot => slotBadge(slot.status).variant === 'available').length : 0;
   const top = element('div', '', 'card-top');
   const day = dayParts(item.date);
   const date = element(day ? 'time' : 'span', day ? item.date + '（' + day.weekday + '）' : '開催日：未確認', 'date');
@@ -146,11 +137,10 @@ function eventCard(item, today, past, compact = false) {
   if (isToday) top.append(element('span', '本日', 'badge'));
   top.append(date);
   if (typeof item.time === 'string' && item.time.trim()) top.append(element('span', item.time.trim(), 'event-time'));
-  if (availableCount) top.append(element('span', '空き' + availableCount + '枠', 'badge availability-count'));
+  if (availableCount) top.append(element('span', '空き' + availableCount + '枠（確認時点）', 'badge availability-count'));
   card.append(top, element('h3', item.title || '撮影会'));
-  if (!availableCount && (past || cancelled || !repeatsSlotStatus(item.status || '未確認', slots))) {
-    const status = past && !cancelled ? '開催日経過' : item.status || '予約状況：未確認';
-    card.append(element('span', status.replaceAll('予約不可', '予約済み'), 'badge'));
+  if (state.label || !availableCount && (compact || !repeatsSlotStatus(item.status || '未確認', slots))) {
+    card.append(element('span', state.label || item.status || '予約状況：未確認', 'badge'));
   }
   card.append(element('p', '会場：' + (item.venue || '未確認')));
   if (compact) {
@@ -159,6 +149,7 @@ function eventCard(item, today, past, compact = false) {
     open.setAttribute('aria-label', (item.title || '撮影会') + 'の詳細を見る');
     open.setAttribute('aria-haspopup', 'dialog');
     open.addEventListener('click', () => {
+      detailItem = item;
       detailBody.replaceChildren(eventCard(item, today, past));
       detailDialog.showModal();
       detailDialog.scrollTop = 0;
@@ -166,8 +157,8 @@ function eventCard(item, today, past, compact = false) {
     card.append(open);
     return card;
   }
-  if (slots.length || (!cancelled && (!item.kind || item.kind === 'individual_photo'))) {
-    card.append(renderSlots(slots, past || cancelled));
+  if (state.slotMode !== 'omit' && (slots.length || (!state.cancelled && (!item.kind || item.kind === 'individual_photo')))) {
+    card.append(renderSlots(slots, state.slotMode === 'record'));
   }
   const details = cardDetails(item.details, slots);
   if (details) card.append(element('p', '補足：' + details));
@@ -206,7 +197,7 @@ function eventCard(item, today, past, compact = false) {
   make.addEventListener('click', async () => {
     make.disabled = true;
     try {
-      const { openAnnouncement } = await import('./announcement-ui.mjs');
+      const { openAnnouncement } = await import('./announcement-ui.mjs?v=booking-poster-1');
       openAnnouncement(item);
     } catch {
       make.textContent = '告知画面を再読み込み';
@@ -219,7 +210,7 @@ function eventCard(item, today, past, compact = false) {
 }
 async function load() {
   refresh.disabled = true;
-  try { const r = await fetch('data/events.json', { cache: 'no-store' }); if (!r.ok) throw Error('HTTP ' + r.status); const data = await r.json(); show(data); snapshot = data; filters.hidden = false; hasData = true; lastConfirmation = updated.textContent; }
+  try { const r = await fetch('data/events.json', { cache: 'no-store' }); if (!r.ok) throw Error('HTTP ' + r.status); const data = await r.json(); show(data); snapshot = data; scheduleBoundary(); filters.hidden = false; hasData = true; lastConfirmation = updated.textContent; }
   catch { if (!hasData) { events.replaceChildren(element('div', '情報を読み込めませんでした。「再読み込み」をお試しください。', 'empty')); updated.textContent = '掲載情報の確認：未確認'; } else { updated.textContent = lastConfirmation + '　再読み込みに失敗しました。前回の情報を表示しています。'; } }
   finally { refresh.disabled = false; }
 }
@@ -229,6 +220,28 @@ function applyFilters() {
   show(snapshot);
   updated.textContent = message;
 }
+function scheduleBoundary() {
+  clearTimeout(clockTimer);
+  const now = Date.now();
+  const today = todayJst().replaceAll('-', '/');
+  nextBoundary = jstTime(today + ' 00:00') + 86400000;
+  for (const item of snapshot.events) {
+    for (const at of [nextBookingChange(item, now), jstTime(item.checked_at) + 86400000]) {
+      if (at > now && at < nextBoundary) nextBoundary = at;
+    }
+  }
+  clockTimer = setTimeout(refreshForTime, Math.max(0, nextBoundary - now) + 1);
+}
+function refreshForTime() {
+  if (!snapshot || Date.now() < nextBoundary) return;
+  const today = todayJst();
+  applyFilters();
+  if (detailDialog.open && detailItem) {
+    detailBody.replaceChildren(eventCard(detailItem, today, dateKey(detailItem.date) < today));
+  }
+  scheduleBoundary();
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshForTime(); });
 try {
   const saved = localStorage.getItem(viewKey);
   const choice = Array.from(viewPicker.elements).find(input => input.value === saved);
@@ -239,7 +252,7 @@ viewPicker.addEventListener('change', event => {
   applyFilters();
 });
 detailDialog.querySelector('button').addEventListener('click', () => detailDialog.close());
-detailDialog.addEventListener('close', () => detailBody.replaceChildren());
+detailDialog.addEventListener('close', () => { detailItem = null; detailBody.replaceChildren(); });
 query.addEventListener('input', applyFilters);
 period.addEventListener('change', applyFilters);
 refresh.addEventListener('click', load);

@@ -1,5 +1,6 @@
-import { announcementFacts } from './announcement-facts.mjs';
-import { nextDesign, renderPosters } from './announcement-poster.mjs';
+import { nextBookingChange } from './reservation.mjs';
+import { announcementFacts } from './announcement-facts.mjs?v=booking-poster-1';
+import { nextDesign, renderPosters } from './announcement-poster.mjs?v=booking-poster-1';
 
 const dialog = document.querySelector('#announcement');
 const preview = dialog.querySelector('.poster-preview');
@@ -7,11 +8,12 @@ const message = dialog.querySelector('textarea');
 const feedback = dialog.querySelector('[role=status]');
 const shuffle = dialog.querySelector('.shuffle');
 const copy = dialog.querySelector('.copy-message');
+const format = dialog.querySelector('#poster-format');
 const fileInput = dialog.querySelector('input[type=file]');
 const lastDesign = new Map();
 const photos = ['photos/portrait.webp','photos/garden.webp','photos/yukata.webp'];
 let event, request = 0, uploaded = null, blank = false, previousPhoto = '', downloads = [];
-let displayedText = '';
+let displayedText = '', design, photoChoice;
 
 function releaseDownloads() {
   for (const url of downloads) URL.revokeObjectURL(url);
@@ -44,11 +46,12 @@ async function choosePhoto() {
   return null;
 }
 
-async function generate() {
+async function generate({ newDesign = false, newPhoto = false } = {}) {
   const id = ++request;
   const facts = announcementFacts(event);
   const key = [event.date,event.title,event.url].join('|');
-  const design = nextDesign(facts,lastDesign.get(key));
+  if (newDesign) design = nextDesign(facts,lastDesign.get(key));
+  if (newPhoto) photoChoice = choosePhoto();
   displayedText = facts.text;
   message.value = facts.text;
   feedback.textContent = '告知画像を作成中…';
@@ -56,9 +59,9 @@ async function generate() {
   releaseDownloads();
   shuffle.disabled = true;
   try {
-    const photo = await choosePhoto();
+    const photo = await photoChoice;
     if (id !== request) return;
-    const pages = renderPosters(facts, design, photo);
+    const pages = renderPosters(facts, design, photo, format.value);
     const blobs = await Promise.all(pages.map(canvas => new Promise((resolve,reject) =>
       canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('PNG')), 'image/png'))));
     if (id !== request) return;
@@ -67,7 +70,7 @@ async function generate() {
       downloads.push(url);
       const pic = document.createElement('img');
       pic.src = url;
-      pic.alt = facts.title + 'の告知画像 ' + (index+1) + '枚目。内容は下の投稿文でも確認できます。';
+      pic.alt = facts.title + 'の告知画像 ' + (index+1) + '枚目。内容はSNS投稿文でも確認できます。';
       const link = document.createElement('a');
       link.href = url;
       link.download = [event.date?.replaceAll('/','-'),facts.title,index+1].join('_').replace(/[\\/:*?"<>|]/g,'-') + '.png';
@@ -94,24 +97,33 @@ export function openAnnouncement(item) {
   dialog.querySelector('.event-name').textContent = item.title;
   dialog.showModal();
   dialog.scrollTop = 0;
-  clearInterval(timeCheck);
-  timeCheck = setInterval(refreshBooking,30000);
-  generate();
+  scheduleBookingCheck();
+  generate({ newDesign: true, newPhoto: true });
 }
 
-shuffle.addEventListener('click',generate);
+shuffle.addEventListener('click',() => generate({ newDesign: true, newPhoto: true }));
+format.addEventListener('change',() => generate());
 dialog.querySelector('.close-dialog').addEventListener('click',() => dialog.close());
 dialog.addEventListener('close',() => {
   request++;
+  photoChoice = null;
   uploaded = null;
   preview.replaceChildren();
   releaseDownloads();
 });
 function refreshBooking() {
-  if (dialog.open && displayedText !== announcementFacts(event).text) generate();
+  if (!dialog.open) return;
+  if (displayedText !== announcementFacts(event).text) generate();
+  scheduleBookingCheck();
 }
 let timeCheck;
-dialog.addEventListener('close',() => clearInterval(timeCheck));
+function scheduleBookingCheck() {
+  clearTimeout(timeCheck);
+  const now = Date.now();
+  const next = nextBookingChange(event, now);
+  if (Number.isFinite(next)) timeCheck = setTimeout(refreshBooking, Math.min(next - now + 1, 86400000));
+}
+dialog.addEventListener('close',() => clearTimeout(timeCheck));
 document.addEventListener('visibilitychange',() => { if (!document.hidden) refreshBooking(); });
 dialog.addEventListener('click',e => {
   if (e.target.closest('.poster-preview a') && displayedText !== announcementFacts(event).text) {
@@ -123,13 +135,13 @@ dialog.querySelector('.blank-photo').addEventListener('click',() => {
   blank = true;
   uploaded = null;
   fileInput.value = '';
-  generate();
+  generate({ newPhoto: true });
 });
 dialog.querySelector('.auto-photo').addEventListener('click',() => {
   blank = false;
   uploaded = null;
   fileInput.value = '';
-  generate();
+  generate({ newPhoto: true });
 });
 fileInput.addEventListener('change',async () => {
   const file = fileInput.files[0];
@@ -153,7 +165,7 @@ fileInput.addEventListener('change',async () => {
   } finally {
     URL.revokeObjectURL(url);
   }
-  generate();
+  generate({ newPhoto: true });
 });
 copy.addEventListener('click',async () => {
   message.value = announcementFacts(event).text;
