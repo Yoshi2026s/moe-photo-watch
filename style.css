@@ -141,7 +141,24 @@ body:has(dialog[open]) { overflow: hidden; }
   .poster-save-tip:has(+ .poster-preview img) { display: block; margin-bottom: 8px; font-size: .9rem; }
 }
 .poster-preview a { padding-inline: 12px; }
-.poster-preview .press-save { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; border: 1px solid #a2788d; border-radius: 12px; box-shadow: 0 2px 12px #38223133; }
+.poster-actions, .poster-preview .press-save { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.poster-actions { margin-top: 6px; }
+.photo-share { background: #843b60; color: white; }
+.poster-action-status { margin-top: 5px; color: #674e5c; font-size: .875rem; }
+.poster-action-status:empty { display: none; }
+.poster-preview .press-save {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 12px);
+  justify-content: center;
+  padding: 4px;
+  background: white;
+  border: 1px solid #a2788d;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px #38223133;
+}
 #social-message { font: inherit; font-size: 1rem; width: 100%; margin: 5px 0; resize: vertical; border: 1px solid #a2788d; border-radius: 8px; padding: 10px; }
 .copy-message { background: #843b60; color: white; }
 
