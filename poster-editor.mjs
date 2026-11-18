@@ -1,4 +1,4 @@
-import { posterLayouts, posterVariant, renderPosters } from './announcement-poster.mjs?v=studio-1';
+import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=single-poster-1';
 
 const editor = document.querySelector('#poster-editor');
 const preview = editor.querySelector('.poster-edit-preview');
@@ -16,7 +16,7 @@ function drawPreview() {
   cancelAnimationFrame(frame);
   frame = requestAnimationFrame(() => {
     if (!editor.open) return;
-    const [image] = renderPosters(source.facts,draft,source.photo,source.format,{ thumbnail: true, previewScale: .3, crop });
+    const image = renderPoster(source.facts,draft,source.photo,source.format,{ previewScale: .3, crop });
     image.setAttribute('aria-hidden','true');
     preview.replaceChildren(image);
   });
