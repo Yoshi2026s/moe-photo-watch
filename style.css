@@ -75,9 +75,14 @@ body:has(dialog[open]) { overflow: hidden; }
 .photo-tools label, .message-label { display: block; font-weight: 700; }
 .photo-tools input { display: block; width: 100%; max-width: 100%; min-height: 48px; font: inherit; font-size: .9rem; padding-block: 8px; }
 .announce-feedback { min-height: 1.6em; margin: 8px 0; color: #634454; }
-.poster-preview figure { margin: 0 0 18px; }
-.poster-preview img { display: block; width: 100%; height: auto; border: 1px solid #e2cfd8; }
+.poster-preview figure { position: relative; margin: 0 0 18px; }
+.poster-preview img { display: block; width: 100%; height: auto; border: 1px solid #e2cfd8; -webkit-touch-callout: default; }
+.poster-save-tip { display: none; }
+@media (any-pointer: coarse) {
+  .poster-save-tip:has(+ .poster-preview img) { display: block; margin-bottom: 8px; font-size: .9rem; }
+}
 .poster-preview a { padding-inline: 12px; }
+.poster-preview .press-save { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; border: 1px solid #a2788d; border-radius: 12px; box-shadow: 0 2px 12px #38223133; }
 #social-message { font: inherit; font-size: 1rem; width: 100%; margin: 5px 0; resize: vertical; border: 1px solid #a2788d; border-radius: 8px; padding: 10px; }
 .copy-message { background: #843b60; color: white; }
 

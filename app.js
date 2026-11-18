@@ -1,4 +1,4 @@
-import { bookingState, jstTime, nextBookingChange, slotBadge } from './reservation.mjs';
+import { bookingState, jstTime, nextBookingChange, slotBadge, unavailableSlotsSummary } from './reservation.mjs?v=slot-label-2';
 import { dayParts } from './event-date.mjs';
 import { element, makeCalendar } from './event-calendar.mjs';
 const events = document.querySelector('#events'), updated = document.querySelector('#updated'), refresh = document.querySelector('#refresh');
@@ -140,7 +140,8 @@ function eventCard(item, today, past, compact = false) {
   if (availableCount) top.append(element('span', '空き' + availableCount + '枠（確認時点）', 'badge availability-count'));
   card.append(top, element('h3', item.title || '撮影会'));
   if (state.label || !availableCount && (compact || !repeatsSlotStatus(item.status || '未確認', slots))) {
-    card.append(element('span', state.label || item.status || '予約状況：未確認', 'badge'));
+    const compactSummary = compact && state.slotMode === 'current' ? unavailableSlotsSummary(slots) : '';
+    card.append(element('span', compactSummary || state.label || item.status || '予約状況：未確認', 'badge'));
   }
   card.append(element('p', '会場：' + (item.venue || '未確認')));
   if (compact) {
@@ -197,7 +198,7 @@ function eventCard(item, today, past, compact = false) {
   make.addEventListener('click', async () => {
     make.disabled = true;
     try {
-      const { openAnnouncement } = await import('./announcement-ui.mjs?v=booking-poster-1');
+      const { openAnnouncement } = await import('./announcement-ui.mjs?v=poster-long-press-1');
       openAnnouncement(item);
     } catch {
       make.textContent = '告知画面を再読み込み';
