@@ -10,7 +10,7 @@ export function element(tag, text, cls) {
 // Keep the selected date when returning from another view or refreshing the data.
 let selectedDate = '';
 
-export function makeCalendar(items, today, makeCard) {
+export function makeCalendar(items, today, makeCard, isFullyBooked) {
   const byDate = new Map();
   const undated = [];
   for (const item of items) {
@@ -84,9 +84,14 @@ export function makeCalendar(items, today, makeCard) {
         if (entries) {
           contents.type = 'button';
           contents.dataset.date = date;
-          contents.setAttribute('aria-label', dayParts(date).label + '、' + entries.length + '件の予定');
+          const full = new Set(entries.filter(item => isFullyBooked(item)));
+          const fullLabel = full.size ? '、満枠' + full.size + '件' : '';
+          contents.setAttribute('aria-label', dayParts(date).label + '、' + entries.length + '件の予定' + fullLabel);
           contents.append(element('span', entries.length + '件', 'day-count'));
-          const titles = entries.map(item => item.title || '撮影会');
+          if (full.size) {
+            contents.append(element('span', full.size === entries.length ? '満枠' : '満枠あり', 'badge full-booking'));
+          }
+          const titles = entries.map(item => (full.has(item) ? '【満枠】' : '') + (item.title || '撮影会'));
           contents.title = titles.join('\n');
           for (const title of titles.slice(0, 2)) {
             contents.append(element('span', title, 'day-event'));
