@@ -1,7 +1,7 @@
 import { nextBookingChange } from './reservation.mjs?v=gallery-1';
 import { announcementFacts, announcementSkillPrompt } from './announcement-facts.mjs?v=skill-prompt-2';
-import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=pattern-1';
-import { openPosterEditor } from './poster-editor.mjs?v=pattern-1';
+import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=poster-density-1';
+import { openPosterEditor } from './poster-editor.mjs?v=poster-density-1';
 import { posterPhotos } from './poster-photos.mjs';
 
 const dialog = document.querySelector('#announcement');

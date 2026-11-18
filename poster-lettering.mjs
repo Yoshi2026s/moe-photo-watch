@@ -3,10 +3,12 @@ export const letteringOptions = {
   gold: 'ゴールドの光沢',
   pop: '立体ポップ',
   glow: 'イルミネーション',
-  clean: 'すっきり強調'
+  clean: 'すっきり強調',
+  press: '活版の陰影'
 };
 
 const accentStyles = {
+  press: ['invitation'],
   soft: ['cute','floral','heart','candy','doll','pearl','lavenderBouquet','pinkRoseLace','mintRibbon','ivoryLace','winterPetals','pinkMaple'],
   gold: ['glamour','artdeco','retro','goldCurtains','mapleGold','velvetHotel','roseLights','pressedAutumn'],
   pop: ['pop','comic','soda','print','retroDiner','coralStars'],
@@ -87,7 +89,14 @@ export function drawLettering(ctx,text,x,y,size,style,{ ribbon = false, gleam = 
       ctx.strokeStyle = mix(halo,accent,.52);
       ctx.strokeText(text,x,y);
     }
-    if (key !== 'clean') {
+    if (key === 'press') {
+      ctx.lineWidth = Math.max(2,size*.05);
+      ctx.strokeStyle = mix(paper,accent,.62);
+      ctx.strokeText(text,x+size*.028,y+size*.048);
+      ctx.strokeStyle = dark ? ink : '#fffaf5';
+      ctx.lineWidth = Math.max(1,size*.025);
+      ctx.strokeText(text,x-size*.016,y-size*.023);
+    } else if (key !== 'clean') {
       ctx.lineWidth = Math.max(2,size*(key === 'glow' ? .16 : .11));
       ctx.strokeStyle = key === 'glow' ? accent+'98' : halo;
       ctx.strokeText(text,x,y);

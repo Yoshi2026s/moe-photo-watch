@@ -126,7 +126,7 @@ test('各系統を一つの雰囲気に割り当て、配色・配置・反転�
       assert.equal(variant.left,left);
       return variant.id;
     }))));
-  assert.equal(new Set(variants).size,864);
+  assert.equal(new Set(variants).size,888);
 });
 
 test('保存した見本のテーマを雰囲気で絞り込め、おまかせで撮影内容に応じて選べる', t => {
