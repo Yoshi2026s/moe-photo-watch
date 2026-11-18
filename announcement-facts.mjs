@@ -1,4 +1,4 @@
-import { bookingState, jstTime, slotBadge } from './reservation.mjs';
+import { bookingState, jstTime, slotBadge, unavailableSlotsSummary } from './reservation.mjs?v=slot-label-2';
 import { dayParts } from './event-date.mjs';
 const clean = value => typeof value === 'string' ? value.trim() : '';
 
@@ -59,7 +59,7 @@ export function announcementFacts(event, now = Date.now()) {
   const openSlots = slots.filter(slot => slotBadge(slot.status).variant === 'available').length;
   let banner = state.pending ? '予約受付開始予定' : state.label;
   if (!banner && openSlots) banner = '空き' + openSlots + '枠（確認時点）';
-  if (!banner && slots.length && slots.every(slot => slotBadge(slot.status).variant === 'unavailable')) banner = '掲載枠は予約不可（確認時点）';
+  if (!banner || banner === '予約受付中') banner = unavailableSlotsSummary(slots) || banner;
   const name = title.includes('雪餅羽もえ') ? title : '雪餅羽もえ｜' + title;
   const text = [
     [dateLabel, name].join('\n'),

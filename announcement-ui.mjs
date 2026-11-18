@@ -1,5 +1,5 @@
-import { nextBookingChange } from './reservation.mjs';
-import { announcementFacts } from './announcement-facts.mjs?v=booking-poster-1';
+import { nextBookingChange } from './reservation.mjs?v=slot-label-2';
+import { announcementFacts } from './announcement-facts.mjs?v=slot-label-2';
 import { nextDesign, renderPosters } from './announcement-poster.mjs?v=booking-poster-1';
 
 const dialog = document.querySelector('#announcement');
@@ -14,10 +14,59 @@ const lastDesign = new Map();
 const photos = ['photos/portrait.webp','photos/garden.webp','photos/yukata.webp'];
 let event, request = 0, uploaded = null, blank = false, previousPhoto = '', downloads = [];
 let displayedText = '', design, photoChoice;
+let press, saveMenuTimer;
+
+function clearPress() {
+  press = null;
+  clearTimeout(saveMenuTimer);
+  preview.querySelector('.press-save')?.remove();
+}
+
+dialog.addEventListener('pointerdown', e => {
+  if (e.target.closest('.press-save')) return;
+  clearPress();
+  if (e.pointerType === 'touch' && e.isPrimary && e.target.matches('.poster-preview img')) {
+    press = { image: e.target, id: e.pointerId, x: e.clientX, y: e.clientY, start: e.timeStamp };
+  }
+});
+preview.addEventListener('pointermove', e => {
+  if (press?.id === e.pointerId && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) clearPress();
+});
+preview.addEventListener('pointerup', e => {
+  if (press?.id !== e.pointerId) return;
+  const { image, y, start } = press;
+  press = null;
+  if (e.timeStamp - start < 600) return;
+  // Some in-app browsers deliver the touch without opening an image menu.
+  saveMenuTimer = setTimeout(() => {
+    if (!image.isConnected) return;
+    const figure = image.closest('figure');
+    const save = figure.querySelector('a[download]').cloneNode(false);
+    const bounds = image.getBoundingClientRect();
+    save.className = 'press-save';
+    save.textContent = 'この画像を保存';
+    save.style.top = Math.max(0, Math.min(y - bounds.top - 24, bounds.height - 48)) + 'px';
+    figure.append(save);
+  }, 120);
+});
+preview.addEventListener('contextmenu', clearPress);
+preview.addEventListener('pointercancel', clearPress);
+dialog.addEventListener('scroll', clearPress, { passive: true });
+window.addEventListener('blur', clearPress);
+document.addEventListener('visibilitychange', () => { if (document.hidden) clearPress(); });
 
 function releaseDownloads() {
   for (const url of downloads) URL.revokeObjectURL(url);
   downloads = [];
+}
+
+function posterImageSource(blob) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(blob);
+  });
 }
 
 async function loadPhoto(url) {
@@ -55,6 +104,7 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
   displayedText = facts.text;
   message.value = facts.text;
   feedback.textContent = '告知画像を作成中…';
+  clearPress();
   preview.replaceChildren();
   releaseDownloads();
   shuffle.disabled = true;
@@ -65,11 +115,13 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
     const blobs = await Promise.all(pages.map(canvas => new Promise((resolve,reject) =>
       canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('PNG')), 'image/png'))));
     if (id !== request) return;
+    const imageSources = await Promise.all(blobs.map(posterImageSource));
+    if (id !== request) return;
     for (const [index,blob] of blobs.entries()) {
       const url = URL.createObjectURL(blob);
       downloads.push(url);
       const pic = document.createElement('img');
-      pic.src = url;
+      pic.src = imageSources[index] || url;
       pic.alt = facts.title + 'の告知画像 ' + (index+1) + '枚目。内容はSNS投稿文でも確認できます。';
       const link = document.createElement('a');
       link.href = url;
@@ -105,6 +157,7 @@ shuffle.addEventListener('click',() => generate({ newDesign: true, newPhoto: tru
 format.addEventListener('change',() => generate());
 dialog.querySelector('.close-dialog').addEventListener('click',() => dialog.close());
 dialog.addEventListener('close',() => {
+  clearPress();
   request++;
   photoChoice = null;
   uploaded = null;

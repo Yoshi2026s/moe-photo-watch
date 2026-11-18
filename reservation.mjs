@@ -13,9 +13,16 @@ export function nextBookingChange(event, now) {
 export function slotBadge(value) {
   const status = typeof value === 'string' ? value.trim().normalize('NFKC') : '';
   if (/^(?:空き|空きあり|予約可|予約可能|予約受付中|○|〇|◯)$/.test(status)) return { label: '空き', variant: 'available' };
-  if (/^×(?:\(公式表示\))?$/.test(status)) return { label: '予約不可', variant: 'unavailable' };
-  if (/^(?:予約不可|予約済み|満枠|満席|完売|受付終了|キャンセル待ち)$/.test(status)) return { label: status, variant: 'unavailable' };
+  if (/^(?:予約済み?|満枠|満席|完売|sold\s*out(?:\s*\(満枠\))?)$/i.test(status)) return { label: '予約済', variant: 'unavailable' };
+  if (/^×(?:\(公式表示\))?$/.test(status)) return { label: '×（公式表示）', variant: 'unavailable' };
+  if (/^(?:予約不可|受付終了|予約受付終了|キャンセル待ち)$/.test(status)) return { label: status, variant: 'unavailable' };
   return { label: '未確認', variant: 'unknown' };
+}
+
+export function unavailableSlotsSummary(slots) {
+  const badges = slots.map(slot => slotBadge(slot.status));
+  if (!badges.length || badges.some(badge => badge.variant !== 'unavailable')) return '';
+  return badges.every(badge => badge.label === '予約済') ? '掲載枠はすべて予約済（確認時点）' : '掲載枠に空きなし（確認時点）';
 }
 
 export function bookingState(event, now = Date.now()) {
