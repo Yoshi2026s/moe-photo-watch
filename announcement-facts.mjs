@@ -1,13 +1,5 @@
-const weekdays = '日月火水木金土';
+import { dayParts } from './event-date.mjs';
 const clean = value => typeof value === 'string' ? value.trim() : '';
-
-function dayParts(date) {
-  if (!/^\d{4}\/\d{2}\/\d{2}$/.test(date)) return null;
-  const [y, m, d] = date.split('/').map(Number);
-  const day = new Date(Date.UTC(y, m - 1, d));
-  if (day.getUTCMonth() !== m - 1 || day.getUTCDate() !== d) return null;
-  return { label: y + '年' + m + '月' + d + '日（' + weekdays[day.getUTCDay()] + '）', month: m };
-}
 
 function jstTime(value) {
   if (!/^\d{4}\/\d{2}\/\d{2} ([01]\d|2[0-3]):[0-5]\d$/.test(value) || !dayParts(value.slice(0, 10))) return NaN;
