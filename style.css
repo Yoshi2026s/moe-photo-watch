@@ -161,6 +161,8 @@ body:has(dialog[open]) { overflow: hidden; }
 }
 #social-message, #skill-prompt { font: inherit; font-size: 1rem; width: 100%; margin: 5px 0; resize: vertical; border: 1px solid #a2788d; border-radius: 8px; padding: 10px; }
 .copy-message { background: #843b60; color: white; }
+.skill-prompt-preview summary { min-height: 48px; padding-block: 12px; cursor: pointer; color: #753454; font-weight: 700; }
+.skill-prompt-feedback:empty { display: none; }
 
 .view-picker { grid-column: 1 / -1; min-width: 0; padding: 0; margin: 4px 0; border: 0; }
 .view-picker legend { padding: 0 0 4px; font-size: .875rem; font-weight: 700; }

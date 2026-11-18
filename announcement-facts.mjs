@@ -54,7 +54,11 @@ export function announcementFacts(event, now = Date.now()) {
     else if (event.kind === 'event') note = '参加方法と当日の進行は公式案内をご覧ください。';
     else note = '詳しい開催内容は公式案内をご覧ください。';
   }
-  const source = officialUrl(event.url) || (Array.isArray(event.sources) ? event.sources : []).map(s => officialUrl(s?.url)).find(Boolean) || '';
+  const sources = Array.isArray(event.sources) ? event.sources : [];
+  const primaryUrl = officialUrl(event.url);
+  const pages = sources.filter(s => s?.kind === 'official_page').map(s => officialUrl(s.url)).filter(Boolean);
+  const organizerUrl = pages.includes(primaryUrl) ? primaryUrl : pages[0] || '';
+  const source = primaryUrl || organizerUrl || sources.map(s => officialUrl(s?.url)).find(Boolean) || '';
   const dateLabel = date?.label || '開催日未確認';
   const openSlots = slots.filter(slot => slotBadge(slot.status).variant === 'available').length;
   let banner = state.pending ? '予約受付開始予定' : state.label;
@@ -65,18 +69,20 @@ export function announcementFacts(event, now = Date.now()) {
     [dateLabel, name].join('\n'),
     rows.map(([label, value]) => label.startsWith('予約枠') ? '【' + label + '】\n' + value : label + '：' + value).join('\n'),
     [note, checked && '情報確認：' + checked + '（日本時間）'].filter(Boolean).join('\n'),
-    source && '主催者の公式案内\n' + source,
+    organizerUrl && '主催者の公式案内\n' + organizerUrl,
+    source && source !== organizerUrl && '開催情報の掲載元\n' + source,
     'もえのリンク集\nhttps://lit.link/nowan_moe0121',
     '#雪餅羽もえ'
   ].filter(Boolean).join('\n\n');
-  return { title, dateLabel, day: date, month: date?.month, rows, banner, note, checked, source, text };
+  return { title, dateLabel, day: date, month: date?.month, rows, banner, note, checked, source, organizerUrl, text };
 }
 
 export function announcementSkillPrompt(event, now = Date.now()) {
   const facts = announcementFacts(event, now);
   return [
     '@create-moe-photo-announcements（雪餅羽もえ 撮影会告知画像）を使って、下記の撮影会の告知画像とSNS投稿文を作成・修正して。',
-    '主催者の公式情報と今回添付した最新資料を照合して。修正の指定がある場合は、添付した画像や投稿文の該当箇所を更新して。投稿文には公式URLとリットリンクを入れて。',
+    '対象イベントの主催者の公式案内を確認し、提供資料がある場合は最新版と照合してください。告知画像には雪餅羽もえ本人の写真を使い、原則として縦長（9:16）で作成してください。投稿文には対象イベントの主催者の公式URLと本人のリットリンクを入れてください。修正依頼の場合は、指定された箇所を更新してください。',
+    !facts.organizerUrl && '主催者の開催ページはサイト掲載情報では未確認です。主催者による対象イベントの案内を確認し、そのURLを投稿文に入れてください。',
     '【撮影会情報（サイト掲載時点の参考）】\n' + facts.text
-  ].join('\n\n');
+  ].filter(Boolean).join('\n\n');
 }

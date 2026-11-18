@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { announcementFacts } from '../announcement-facts.mjs';
+import { announcementFacts, announcementSkillPrompt } from '../announcement-facts.mjs';
 import { bookingState, slotBadge } from '../reservation.mjs';
 import { nextDesign, posterLayouts, posterThemeGroups, posterThemes, posterVariant } from '../announcement-poster.mjs';
 import { backgroundPatterns, posterPatternKey } from '../poster-patterns.mjs';
@@ -9,6 +9,19 @@ const event = {title:'撮影会',date:'2026/11/21',checked_at:'2026/11/17 12:30'
   details:'料金：各部12,000円、会場代1,000円。オプション：水着＋5,000円。',
   slots:[{label:'第2部',time:'15:00〜16:00',status:'予約不可'},{label:'第1部',time:'13:00〜14:00',status:'未確認'}]};
 const at = time => Date.parse(time + '+09:00');
+
+test('告知依頼文が対象回の情報・制作指定・2つのリンクを引き継ぐ', () => {
+  const url = 'https://example.org/event/21';
+  const post = 'https://example.org/performer/post/5';
+  const item = {...event,url:post,sources:[{kind:'official_post',url:post},{kind:'official_page',url}]};
+  const prompt = announcementSkillPrompt(item,at('2026-11-18T12:00'));
+  for (const part of ['create-moe-photo-announcements','本人の写真','9:16','11月21日（土）',item.title,
+    '主催者の公式案内\n' + url,'開催情報の掲載元\n' + post,'https://lit.link/nowan_moe0121']) assert.ok(prompt.includes(part),part);
+  const postOnly = announcementSkillPrompt({...item,sources:[{kind:'official_post',url:post}]});
+  assert.ok(postOnly.includes('開催情報の掲載元\n' + post));
+  assert.doesNotMatch(postOnly,/主催者の公式案内\n/);
+  assert.match(postOnly,/主催者の開催ページはサイト掲載情報では未確認/);
+});
 
 test('日本時間の受付開始・締切ちょうどで表示を切り替える', () => {
   const timed = {...event,booking_opens_at:'2026/11/18 20:00',booking_closes_at:'2026/11/20 22:00'};

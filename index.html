@@ -2,7 +2,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/moe-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/moe-192.png">
-<link rel="stylesheet" href="style.css?v=skill-prompt-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
+<link rel="stylesheet" href="style.css?v=skill-prompt-2"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
 <fieldset id="event-view" class="view-picker">
   <legend>表示形式</legend>
   <div class="view-choices">
@@ -39,7 +39,11 @@
     <button type="button" class="copy-skill-prompt">ChatGPTスキル用の依頼文をコピー</button>
   </div>
   <p class="skill-prompt-feedback" role="status"></p>
-  <textarea id="skill-prompt" aria-label="ChatGPTスキル用の依頼文" rows="8" readonly hidden></textarea>
+  <p class="meta">ChatGPTのWorkモードで「@」から「雪餅羽もえ 撮影会告知画像」を選び、依頼文を貼り付けてください。</p>
+  <details class="skill-prompt-preview">
+    <summary>依頼文を確認・手動コピー</summary>
+    <textarea id="skill-prompt" aria-label="ChatGPTスキル用の依頼文" rows="8" readonly></textarea>
+  </details>
 </dialog>
 <dialog id="poster-picker" aria-labelledby="poster-picker-heading">
   <div class="dialog-heading"><h2 id="poster-picker-heading"></h2><button type="button" class="close-picker" autofocus>戻る</button></div>
@@ -81,4 +85,4 @@
     <button type="button" class="apply-poster-edit">反映する</button>
   </div>
 </dialog>
-<script type="module" src="app.js?v=skill-prompt-1"></script></body></html>
+<script type="module" src="app.js?v=skill-prompt-2"></script></body></html>
