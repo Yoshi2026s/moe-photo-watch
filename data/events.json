@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026/11/18 14:15",
+  "updated_at": "2026/11/18 16:06",
   "events": [
     {
       "date": "2026/11/15",
@@ -53,7 +53,7 @@
       "venue": "スタジオグラフィティ",
       "status": "第1〜5部：公式ページで×表示",
       "details": "料金：予約12,000円、当日13,000円。オプション：動画撮影3,000円、サイン付きチェキ1枚2,000円。",
-      "checked_at": "2026/11/18 14:15",
+      "checked_at": "2026/11/18 16:06",
       "url": "https://photo-session-chance.com/2026/09/28/2026-11-28%E5%9C%9F-%E9%9B%AA%E9%A4%85%E7%BE%BD%E3%82%82%E3%81%88/",
       "slots": [
         {
@@ -90,6 +90,10 @@
         {
           "kind": "official_post",
           "url": "https://x.com/moe_moechan121/status/2118377177360261410"
+        },
+        {
+          "kind": "official_post",
+          "url": "https://x.com/moe_moechan121/status/2120879384446001347"
         }
       ],
       "booking_opens_at": "2026/11/12 21:00"
@@ -404,7 +408,7 @@
       "kind": "individual_photo",
       "status": "",
       "details": "料金：各部の撮影費10,000円＋参加費2,000円。オプション：衣装5,000円／部、動画撮影5,000円／部、チェキ2,000円／枚。",
-      "checked_at": "2026/11/18 11:34",
+      "checked_at": "2026/11/18 16:06",
       "url": "https://www.smooth-tokyo.jp/schedule/detail/2026-11-22_6.html",
       "slots": [
         {
@@ -436,6 +440,10 @@
         {
           "kind": "official_post",
           "url": "https://x.com/moe_moechan121/status/2118377177360261410"
+        },
+        {
+          "kind": "official_post",
+          "url": "https://x.com/moe_moechan121/status/2120440283787862030"
         }
       ]
     },
