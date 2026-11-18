@@ -1,3 +1,5 @@
+import { drawReferenceDecor, referencePosterThemes } from './poster-reference-themes.mjs?v=reference-1';
+
 export const posterThemes = {
   glamour: { label: 'ゴールドグラビア', frame: 'deco', wide: true, palettes: [
     ['#201320','#fff7e4','#e9bc66'], ['#291528','#fff5f3','#f7bbbe'], ['#101f2e','#f7f3e6','#dbc488']
@@ -58,14 +60,16 @@ export const posterThemes = {
   ] },
   paper: { label: '和紙モダン', frame: 'deco', layout: 'banner', pattern: 'stripes', palettes: [
     ['#faf2de','#4d3828','#bf955e'], ['#e8f1e6','#324b3f','#7f9b7a'], ['#f8e5de','#643a43','#bb706d']
-  ] }
+  ] },
+  ...referencePosterThemes
 };
 
 export const posterThemeGroups = {
   '華やか': ['glamour','editorial','pearl','noir','artdeco'],
   'かわいい': ['cute','floral','heart','candy','doll'],
   'POP': ['pop','comic','neon','soda','print'],
-  '季節・レトロ': ['retro','natural','night','coastal','paper']
+  '季節・レトロ': ['retro','natural','night','coastal','paper'],
+  '保存した見本': Object.keys(referencePosterThemes)
 };
 
 export const posterLayouts = {
@@ -76,8 +80,10 @@ export const posterLayouts = {
 };
 
 const seasons = [
-  ['night','glamour','cute','noir'], ['floral','cute','natural','heart'],
-  ['pop','natural','editorial','soda','coastal'], ['retro','glamour','editorial','paper','artdeco']
+  ['night','glamour','cute','noir','winterPetals','roseIllumination'],
+  ['floral','cute','natural','heart','lavenderBouquet','ivoryLace'],
+  ['pop','natural','editorial','soda','coastal','retroDiner','coralStars'],
+  ['retro','glamour','editorial','paper','artdeco','mapleGold','pressedAutumn','pinkMaple']
 ];
 const serif = '"Yu Mincho","Hiragino Mincho ProN",serif';
 const sans = '"Yu Gothic","Hiragino Sans","Meiryo",sans-serif';
@@ -92,15 +98,17 @@ export function posterVariant(key, palette = 0, left = false, layout) {
 
 export function nextDesign(facts, previous, selectedTheme) {
   const season = seasons[Math.floor(((facts.month || 1) % 12) / 3)];
-  const special = /レトロ|浴衣|古民家/.test(facts.title) ? 'retro'
-    : /ドレス/.test(facts.title) ? 'glamour'
-    : /花|flower/i.test(facts.title) ? 'floral'
-    : /学園|animal|バニー/i.test(facts.title) ? 'cute'
-    : /野外|屋外|公園|ガーデン/.test(facts.title) ? 'natural' : '';
+  const special = /イルミネーション|夜景|ナイト/.test(facts.title) ? ['lanternNight','roseIllumination']
+    : /学園|学校|制服/.test(facts.title) ? ['chalkboard','cute']
+    : /レトロ|浴衣|古民家/.test(facts.title) ? ['retro','retroDiner','pressedAutumn']
+    : /ドレス|ホテル|舞台/.test(facts.title) ? ['glamour','goldCurtains','velvetHotel','roseLights']
+    : /花|flower/i.test(facts.title) ? ['floral','pinkRoseLace','lavenderBouquet']
+    : /animal|バニー/i.test(facts.title) ? ['cute','mintRibbon','ivoryLace']
+    : /野外|屋外|公園|ガーデン/.test(facts.title) ? ['natural','winterPetals','pinkMaple'] : [];
   const automatic = !Object.hasOwn(posterThemes, selectedTheme);
-  const keys = automatic ? [...new Set([special, ...season, ...Object.keys(posterThemes)].filter(Boolean))] : [selectedTheme];
+  const keys = automatic ? [...new Set([...special, ...season, ...Object.keys(posterThemes)])] : [selectedTheme];
   const choices = automatic ? keys.filter(key => key !== previous?.key) : keys;
-  const weighted = choices.flatMap(key => Array(special === key ? 5 : season.includes(key) ? 3 : 1).fill(key));
+  const weighted = choices.flatMap(key => Array(special.includes(key) ? 5 : season.includes(key) ? 3 : 1).fill(key));
   const key = weighted[Math.floor(Math.random() * weighted.length)];
   const theme = posterThemes[key];
   const variants = theme.palettes.flatMap((_, index) =>
@@ -121,7 +129,9 @@ function backdrop(ctx, height, design) {
   ctx.save();
   ctx.strokeStyle = accent;
   ctx.fillStyle = accent;
-  if (design.frame === 'deco') {
+  if (design.scene) {
+    drawReferenceDecor(ctx,W,height,design);
+  } else if (design.frame === 'deco') {
     ctx.lineWidth = 2;
     ctx.strokeRect(28,25,W-56,height-49);
     ctx.strokeRect(38,35,W-76,height-69);
@@ -266,18 +276,26 @@ function motif(ctx, x, y, radius, key, color) {
 
 function portrait(ctx, photo, x, y, w, h, design, crop) {
   const accent = design.colors[2];
-  const radius = design.frame === 'round' ? 48 : 0;
+  const radius = design.frame === 'round' || design.shape === 'round' ? 48 : 0;
+  const outline = (left,top,width,height,corner) => {
+    ctx.beginPath();
+    if (design.shape === 'oval') ctx.ellipse(left+width/2,top+height/2,width/2,height/2,0,0,Math.PI*2);
+    else ctx.roundRect(left,top,width,height,corner);
+  };
+  ctx.save();
+  if (design.shape === 'tilt') {
+    ctx.translate(x+w/2,y+h/2);
+    ctx.rotate(design.left ? -.039 : .039);
+    ctx.translate(-x-w/2,-y-h/2);
+  }
   if (design.frame === 'offset') {
     ctx.fillStyle = accent;
     ctx.fillRect(x+5,y+5,w+17,h+17);
   }
-  ctx.fillStyle = design.frame === 'deco' ? accent : '#fff';
-  ctx.beginPath();
-  ctx.roundRect(x-8,y-8,w+16,h+16,radius+4);
+  ctx.fillStyle = design.scene || design.frame === 'deco' ? accent : '#fff';
+  outline(x-8,y-8,w+16,h+16,radius+4);
   ctx.fill();
-  ctx.save();
-  ctx.beginPath();
-  ctx.roundRect(x,y,w,h,radius);
+  outline(x,y,w,h,radius);
   ctx.clip();
   if (photo && crop?.fit) {
     const scale = Math.min(w / photo.naturalWidth,h / photo.naturalHeight);
@@ -294,8 +312,7 @@ function portrait(ctx, photo, x, y, w, h, design, crop) {
     ctx.setLineDash([9,10]);
     ctx.fillStyle = design.colors[0];
     ctx.fillRect(x,y,w,h);
-    ctx.beginPath();
-    ctx.roundRect(x+8,y+8,w-16,h-16,radius);
+    outline(x+8,y+8,w-16,h-16,radius);
     ctx.stroke();
   }
   ctx.restore();
@@ -351,6 +368,16 @@ function drawDetails(ctx, rows, design, top, bottom, story) {
   ctx.save();
   ctx.translate(W*(1-fit)/2,top);
   ctx.scale(fit,fit);
+  if (design.scene) {
+    ctx.fillStyle = design.scene === 'winter' ? '#f4faff' : '#fff6e8';
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(46,-9,W-92,layout.height+18,18);
+    ctx.fill();
+    ctx.stroke();
+  }
+  const textColor = design.scene ? '#382737' : ink;
   for (const [index, group] of layout.groups.entries()) {
     const x = 62 + index*(layout.width+layout.gap);
     let y = 0;
@@ -358,7 +385,7 @@ function drawDetails(ctx, rows, design, top, bottom, story) {
       let baseline = y + layout.labelSize;
       ctx.fillStyle = accent;
       ctx.fillRect(x,y+3,5,layout.labelSize);
-      ctx.fillStyle = ink;
+      ctx.fillStyle = textColor;
       ctx.font = '700 ' + layout.labelSize + 'px ' + sans;
       for (const label of labels) {
         ctx.fillText(label,x+18,baseline);
@@ -367,6 +394,13 @@ function drawDetails(ctx, rows, design, top, bottom, story) {
       baseline += layout.size-layout.labelSize;
       ctx.font = '600 ' + layout.size + 'px ' + sans;
       for (const value of values) {
+        ctx.fillStyle = textColor;
+        if (design.scene && labels[0].startsWith('予約枠') && /^第[0-9]+部/.test(value)) {
+          const open = /(?:空き|予約受付中)$/.test(value);
+          ctx.fillStyle = open ? '#e3f0e3' : '#f1e3e3';
+          ctx.fillRect(x+11,baseline-layout.size+2,layout.width-12,layout.textStep-2);
+          ctx.fillStyle = open ? '#27634a' : '#6a4555';
+        }
         ctx.fillText(value,x+18,baseline);
         baseline += layout.textStep;
       }
@@ -396,8 +430,8 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   ctx.font = '700 56px ' + headingFont;
   ctx.fillText('雪餅羽もえ',62,100);
   ctx.textAlign = 'right';
-  ctx.font = '24px Georgia,serif';
-  ctx.fillText('N O W A N   M O E',W-62,93);
+  ctx.font = design.scene ? '700 27px ' + sans : '24px Georgia,serif';
+  ctx.fillText(design.scene ? facts.dateLabel : 'N O W A N   M O E',W-62,93);
   ctx.textAlign = 'left';
   ctx.strokeStyle = accent;
   ctx.lineWidth = 2;
@@ -427,20 +461,25 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   const tx = stacked ? (design.left ? 62 : W/2+24) : design.left ? px+pw+56 : 62;
   const tw = stacked ? W/2-86 : W-pw-192;
   const infoTop = stacked ? top+ph+(photo ? 55 : 27) : top;
+  const opening = facts.rows.find(([label,value]) => label === '受付' && value.startsWith('予約受付開始　'))?.[1];
+  const bannerText = (design.scene && opening) || facts.banner;
   const bandFont = '700 ' + (story ? 38 : 32) + 'px ' + sans;
   ctx.font = bandFont;
-  const bannerLines = facts.banner ? lines(ctx,facts.banner,tw-40) : [];
+  const bandWidth = design.scene ? W-126 : tw;
+  const bannerLines = bannerText ? lines(ctx,bannerText,bandWidth-40) : [];
   const bandLineHeight = story ? 52 : 43;
-  const bandX = stacked ? W-tx-tw : tx;
-  const bandY = infoTop + (stacked ? 82 : story ? 325 : heroTime ? 239 : 172);
+  const bandX = design.scene ? 63 : stacked ? W-tx-tw : tx;
+  const infoBottom = Math.max(top+ph+(photo ? 87 : 68),
+    infoTop+(heroTime ? (story ? 305 : 249) : 190));
+  const bandY = design.scene ? infoBottom : infoTop + (stacked ? 82 : story ? 325 : heroTime ? 239 : 172);
   const bandHeight = bannerLines.length*bandLineHeight + 18;
   const heroBottom = Math.max(
     top+ph+(photo ? 97 : 72),
     stacked ? infoTop+(heroTime ? (story ? 340 : 279) : 228) : 0,
-    bannerLines.length ? bandY+bandHeight+70 : 0
+    bannerLines.length ? bandY+bandHeight+(design.scene ? 31 : 70) : 0
   );
   const details = facts.rows.filter(([label,value]) =>
-    !(label === '受付' && value === facts.banner) && !(label === '開催時間' && heroTime));
+    !(label === '受付' && value === bannerText) && !(label === '開催時間' && heroTime));
   if (extended) details.unshift(['イベント名',facts.title]);
   const detailBottom = H-110;
   const idealDetails = Math.min(
@@ -481,20 +520,20 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
     ctx.fillText(time,tx,infoTop+(story ? 274 : 217),tw);
   }
   if (bannerLines.length) {
-    ctx.fillStyle = ink;
+    ctx.fillStyle = design.scene ? '#842b49' : ink;
     ctx.beginPath();
     ctx.moveTo(bandX,bandY);
-    ctx.lineTo(bandX+tw,bandY);
-    ctx.lineTo(bandX+tw-11,bandY+bandHeight/2);
-    ctx.lineTo(bandX+tw,bandY+bandHeight);
+    ctx.lineTo(bandX+bandWidth,bandY);
+    ctx.lineTo(bandX+bandWidth-11,bandY+bandHeight/2);
+    ctx.lineTo(bandX+bandWidth,bandY+bandHeight);
     ctx.lineTo(bandX,bandY+bandHeight);
     ctx.lineTo(bandX+11,bandY+bandHeight/2);
     ctx.closePath();
     ctx.fill();
     ctx.font = bandFont;
-    ctx.fillStyle = design.colors[0];
+    ctx.fillStyle = design.scene ? '#fff4e8' : design.colors[0];
     ctx.textAlign = 'center';
-    bannerLines.forEach((line,index) => ctx.fillText(line,bandX+tw/2,bandY+(index+1)*bandLineHeight-1));
+    bannerLines.forEach((line,index) => ctx.fillText(line,bandX+bandWidth/2,bandY+(index+1)*bandLineHeight-1));
   }
   ctx.restore();
 

@@ -112,5 +112,13 @@ test('各系統を一つの雰囲気に割り当て、配色・配置・反転�
       assert.equal(variant.left,left);
       return variant.id;
     }))));
-  assert.equal(new Set(variants).size,480);
+  assert.equal(new Set(variants).size,864);
+});
+
+test('保存した見本のテーマを雰囲気で絞り込め、おまかせで撮影内容に応じて選べる', t => {
+  t.mock.method(Math,'random',() => 0);
+  assert.equal(posterThemeGroups['保存した見本'].length,16);
+  assert.equal(nextDesign({title:'学園ポートレート撮影会',month:11}).key,'chalkboard');
+  assert.equal(nextDesign({title:'夜のイルミネーション撮影会',month:11}).key,'lanternNight');
+  assert.equal(nextDesign({title:'撮影会',month:11},null,'retroDiner').shape,'tilt');
 });
