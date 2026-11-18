@@ -1,5 +1,6 @@
 import { drawReferenceDecor, referencePosterThemes } from './poster-reference-themes.mjs?v=reference-1';
 import { drawLettering, posterLettering, ribbonColors } from './poster-lettering.mjs';
+import { drawPosterPattern, posterPatternKey } from './poster-patterns.mjs';
 
 export const posterThemes = {
   glamour: { label: 'ゴールドグラビア', frame: 'deco', wide: true, palettes: [
@@ -26,40 +27,40 @@ export const posterThemes = {
   night: { label: '星空シネマ', frame: 'deco', stacked: true, palettes: [
     ['#15192f','#f1f2ff','#9daaf2'], ['#242044','#fff0f8','#d390d7'], ['#102d37','#ebfbf9','#72d0be']
   ] },
-  pearl: { label: 'パールジュエル', frame: 'round', wide: true, pattern: 'pearls', palettes: [
+  pearl: { label: 'パールジュエル', frame: 'round', wide: true, palettes: [
     ['#f6ecdf','#4b343f','#b87b8a'], ['#eef0f5','#38415b','#a188c0'], ['#eaf0e9','#304938','#8fa275']
   ] },
-  noir: { label: 'モノクロシック', frame: 'offset', wide: true, bold: true, pattern: 'stripes', palettes: [
+  noir: { label: 'モノクロシック', frame: 'offset', wide: true, bold: true, palettes: [
     ['#181a20','#f9f7f3','#aeb5c5'], ['#1b2020','#f2efde','#b7a487'], ['#231c23','#f0edef','#bc92a5']
   ] },
-  artdeco: { label: 'アールデコ・ベルベット', frame: 'deco', stacked: true, pattern: 'rays', palettes: [
+  artdeco: { label: 'アールデコ・ベルベット', frame: 'deco', stacked: true, palettes: [
     ['#122e2b','#fff2cf','#dcb46e'], ['#302139','#fff4d5','#d9a364'], ['#34191e','#fff2d9','#c48656']
   ] },
-  heart: { label: 'ハートメロウ', frame: 'round', stacked: true, pattern: 'hearts', palettes: [
+  heart: { label: 'ハートメロウ', frame: 'round', stacked: true, palettes: [
     ['#ffd7e4','#73243d','#dc6984'], ['#ffeddf','#703b34','#eb817d'], ['#e7dcfc','#583978','#a36abc']
   ] },
-  candy: { label: 'キャンディチェック', frame: 'round', pattern: 'check', palettes: [
+  candy: { label: 'キャンディチェック', frame: 'round', palettes: [
     ['#ffe6ed','#6a284a','#e880b4'], ['#e2f8ef','#245449','#74c8af'], ['#e9ecff','#40376c','#9a94e2']
   ] },
-  doll: { label: 'ドールパステル', frame: 'deco', stacked: true, pattern: 'pearls', palettes: [
+  doll: { label: 'ドールパステル', frame: 'deco', stacked: true, palettes: [
     ['#fdf1fb','#5b4058','#bc8aac'], ['#ebf2ff','#324878','#86a8e4'], ['#fff7e1','#5c4434','#cfab70']
   ] },
-  comic: { label: 'コミックポスター', frame: 'offset', bold: true, pattern: 'rays', palettes: [
+  comic: { label: 'コミックポスター', frame: 'offset', bold: true, palettes: [
     ['#fff2a3','#262944','#e44356'], ['#d2f1fc','#123452','#ed6848'], ['#fce0c7','#4b2455','#8a52cf']
   ] },
-  neon: { label: 'ネオンステージ', frame: 'offset', wide: true, bold: true, pattern: 'grid', palettes: [
+  neon: { label: 'ネオンステージ', frame: 'offset', wide: true, bold: true, palettes: [
     ['#20143b','#fff4fb','#f47ceb'], ['#102c33','#ecfff9','#58e2a8'], ['#17233f','#eefaff','#5baef9']
   ] },
-  soda: { label: 'クリームソーダ', frame: 'round', layout: 'banner', bold: true, pattern: 'pearls', palettes: [
+  soda: { label: 'クリームソーダ', frame: 'round', layout: 'banner', bold: true, palettes: [
     ['#c9f5e4','#164b42','#31ad91'], ['#f4e2ff','#533671','#b77dda'], ['#ffe8c3','#654022','#e38e51']
   ] },
-  print: { label: 'カラーブロック', frame: 'offset', wide: true, bold: true, pattern: 'blocks', palettes: [
+  print: { label: 'カラーブロック', frame: 'offset', wide: true, bold: true, palettes: [
     ['#fbebd0','#2e3449','#e35d49'], ['#eaeef5','#2f3656','#2d75da'], ['#daf4de','#244537','#22ac79']
   ] },
-  coastal: { label: 'サンセットビーチ', frame: 'round', layout: 'banner', pattern: 'waves', palettes: [
+  coastal: { label: 'サンセットビーチ', frame: 'round', layout: 'banner', palettes: [
     ['#ffdcbf','#65382c','#df765b'], ['#d5f3f7','#23474c','#67bfc8'], ['#fce6cc','#614650','#d8819a']
   ] },
-  paper: { label: '和紙モダン', frame: 'deco', layout: 'banner', pattern: 'stripes', palettes: [
+  paper: { label: '和紙モダン', frame: 'deco', layout: 'banner', palettes: [
     ['#faf2de','#4d3828','#bf955e'], ['#e8f1e6','#324b3f','#7f9b7a'], ['#f8e5de','#643a43','#bb706d']
   ] },
   ...referencePosterThemes
@@ -127,24 +128,26 @@ function backdrop(ctx, height, design) {
   ctx.fillRect(0,0,W,height);
   ctx.fillStyle = wash;
   ctx.fillRect(0,0,W,height);
+  drawPosterPattern(ctx,W,height,design);
+  const patterned = posterPatternKey(design) !== 'none';
   ctx.save();
   ctx.strokeStyle = accent;
   ctx.fillStyle = accent;
-  if (design.scene) {
+  if (design.scene && patterned) {
     drawReferenceDecor(ctx,W,height,design);
-  } else if (design.frame === 'deco') {
+  } else if (design.scene || design.frame === 'deco') {
     ctx.lineWidth = 2;
     ctx.strokeRect(28,25,W-56,height-49);
     ctx.strokeRect(38,35,W-76,height-69);
     ctx.globalAlpha = .24;
-    for (const radius of [130,170,210]) {
+    for (const radius of patterned ? [130,170,210] : []) {
       ctx.beginPath();
       ctx.arc(W-18,105,radius,0,2*Math.PI);
       ctx.stroke();
     }
   } else if (design.frame === 'offset') {
     ctx.globalAlpha = .22;
-    for (let y = 48; y < 350; y += 21) {
+    for (let y = 48; patterned && y < 350; y += 21) {
       for (let x = W-126; x < W-24; x += 22) {
         ctx.beginPath();
         ctx.arc(x,y,3.5,0,2*Math.PI);
@@ -152,7 +155,7 @@ function backdrop(ctx, height, design) {
       }
     }
     ctx.fillRect(26,28,11,height-56);
-  } else {
+  } else if (patterned) {
     ctx.globalAlpha = .14;
     for (const [x,y,radius] of [[W-24,150,180],[18,height-245,150],[W-34,height-158,74]]) {
       ctx.beginPath();
@@ -161,59 +164,8 @@ function backdrop(ctx, height, design) {
     }
   }
   ctx.restore();
-  texture(ctx,height,design.pattern,accent);
   ctx.fillStyle = ink;
   ctx.fillRect(0,0,W,12);
-}
-
-function texture(ctx, height, pattern, color) {
-  if (!pattern) return;
-  ctx.save();
-  ctx.fillStyle = ctx.strokeStyle = color;
-  ctx.globalAlpha = .19;
-  ctx.beginPath();
-  if (pattern === 'rays') {
-    ctx.lineWidth = 7;
-    for (let x = -260; x < W+400; x += 86) {
-      ctx.moveTo(W-68,60);
-      ctx.lineTo(x,350);
-    }
-    ctx.stroke();
-  } else if (pattern === 'waves') {
-    for (let y = height-325; y < height; y += 46) {
-      ctx.moveTo(10,y);
-      ctx.bezierCurveTo(300,y-140,770,y+120,W-10,y);
-    }
-    ctx.lineWidth = 4;
-    ctx.stroke();
-  } else if (pattern === 'blocks') {
-    ctx.fillRect(W-190,54,157,301);
-    ctx.fillRect(38,height-335,178,236);
-  } else {
-    for (let row = 0; row < 5; row++) {
-      for (let column = 0; column < 6; column++) {
-        const x = W-216+column*34, y = 148+row*36;
-        if (pattern === 'check' && (row+column) % 2 === 0) ctx.fillRect(x,y,32,32);
-        if (pattern === 'grid') ctx.strokeRect(x,y,30,30);
-        if (pattern === 'stripes') {
-          ctx.moveTo(x,y+18);
-          ctx.lineTo(x+22,y);
-        }
-        if (pattern === 'pearls') {
-          ctx.moveTo(x+7,y);
-          ctx.arc(x,y,7,0,2*Math.PI);
-        }
-        if (pattern === 'hearts') {
-          ctx.moveTo(x,y+11);
-          ctx.bezierCurveTo(x-22,y-7,x-7,y-16,x,y-7);
-          ctx.bezierCurveTo(x+7,y-16,x+22,y-7,x,y+11);
-        }
-      }
-    }
-    if (pattern === 'stripes') ctx.stroke();
-    else ctx.fill();
-  }
-  ctx.restore();
 }
 
 function lines(ctx, value, width) {
@@ -370,14 +322,16 @@ function drawDetails(ctx, rows, design, lettering, top, bottom, story) {
   ctx.save();
   ctx.translate(W*(1-fit)/2,top);
   ctx.scale(fit,fit);
-  if (design.scene) {
-    ctx.fillStyle = lettering.body;
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 2;
+  if (design.scene || posterPatternKey(design) !== 'none') {
+    ctx.fillStyle = design.scene ? lettering.body : lettering.body+'dc';
     ctx.beginPath();
     ctx.roundRect(46,-9,W-92,layout.height+18,18);
     ctx.fill();
-    ctx.stroke();
+    if (design.scene) {
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
   }
   const textColor = design.scene ? '#382737' : ink;
   for (const [index, group] of layout.groups.entries()) {

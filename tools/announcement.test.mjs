@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { announcementFacts } from '../announcement-facts.mjs';
 import { bookingState, slotBadge } from '../reservation.mjs';
 import { nextDesign, posterLayouts, posterThemeGroups, posterThemes, posterVariant } from '../announcement-poster.mjs';
+import { backgroundPatterns, posterPatternKey } from '../poster-patterns.mjs';
 
 const event = {title:'撮影会',date:'2026/11/21',checked_at:'2026/11/17 12:30',
   details:'料金：各部12,000円、会場代1,000円。オプション：水着＋5,000円。',
@@ -121,4 +122,18 @@ test('保存した見本のテーマを雰囲気で絞り込め、おまかせ�
   assert.equal(nextDesign({title:'学園ポートレート撮影会',month:11}).key,'chalkboard');
   assert.equal(nextDesign({title:'夜のイルミネーション撮影会',month:11}).key,'lanternNight');
   assert.equal(nextDesign({title:'撮影会',month:11},null,'retroDiner').shape,'tilt');
+});
+
+test('背景柄はテーマと配色に応じて選ばれ、個別指定と柄なしを優先する', () => {
+  assert.equal(Object.keys(backgroundPatterns).length,15);
+  assert.equal(posterPatternKey(posterVariant('winterPetals',0)),'snow');
+  assert.equal(posterPatternKey(posterVariant('winterPetals',1)),'lace');
+  for (const key of Object.keys(posterThemes)) {
+    for (let palette = 0; palette < 3; palette++) {
+      assert.ok(Object.hasOwn(backgroundPatterns,posterPatternKey(posterVariant(key,palette))));
+    }
+  }
+  const design = posterVariant('glamour');
+  assert.equal(posterPatternKey({...design,backgroundPattern:'waves'}),'waves');
+  assert.equal(posterPatternKey({...design,backgroundPattern:'none'}),'none');
 });
