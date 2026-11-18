@@ -1,5 +1,6 @@
 import { bookingState, jstTime, slotBadge, slotConfirmation, unavailableSlotsSummary } from './reservation.mjs?v=gallery-1';
 import { dayParts } from './event-date.mjs';
+import { posterThemeProfile } from './poster-theme-profile.mjs';
 const clean = value => typeof value === 'string' ? value.trim() : '';
 
 function officialUrl(value) {
@@ -65,16 +66,19 @@ export function announcementFacts(event, now = Date.now()) {
   if (!banner && openSlots) banner = '空き' + openSlots + '枠';
   if (!banner || banner === '予約受付中') banner = unavailableSlotsSummary(slots, event.kind) || banner;
   const name = title.includes('雪餅羽もえ') ? title : '雪餅羽もえ｜' + title;
+  const profile = posterThemeProfile(event);
+  const accent = profile.scene === 'flower' || profile.outfit === 'kimono' ? '🌸'
+    : profile.scene === 'luxury' || profile.scene === 'night' || profile.outfit === 'swim' || profile.optionSwim ? '✨' : '🎀';
   const text = [
-    [dateLabel, name].join('\n'),
+    [dateLabel, state.inactive ? name : name + ' ' + accent].join('\n'),
     rows.map(([label, value]) => label.startsWith('予約枠') ? '【' + label + '】\n' + value : label + '：' + value).join('\n'),
     [note, checked && '情報確認：' + checked + '（日本時間）'].filter(Boolean).join('\n'),
     organizerUrl && '主催者の公式案内\n' + organizerUrl,
     source && source !== organizerUrl && '開催情報の掲載元\n' + source,
-    'もえのリンク集\nhttps://lit.link/nowan_moe0121',
+    (state.inactive ? '' : '💗 ') + 'もえのリンク集\nhttps://lit.link/nowan_moe0121',
     '#雪餅羽もえ'
   ].filter(Boolean).join('\n\n');
-  return { title, dateLabel, day: date, month: date?.month, rows, banner, note, checked, source, organizerUrl, text };
+  return { title, dateLabel, day: date, month: date?.month, profile, rows, banner, note, checked, source, organizerUrl, text };
 }
 
 export function announcementSkillPrompt(event, now = Date.now()) {
@@ -83,6 +87,7 @@ export function announcementSkillPrompt(event, now = Date.now()) {
     '@create-moe-photo-announcements（雪餅羽もえ 撮影会告知画像）を使って、下記の撮影会の告知画像とSNS投稿文を作成・修正して。',
     '対象イベントの主催者の公式案内を確認し、提供資料がある場合は最新版と照合してください。告知画像には雪餅羽もえ本人の写真を使い、原則として縦長（9:16）で作成してください。投稿文には対象イベントの主催者の公式URLと本人のリットリンクを入れてください。修正依頼の場合は、指定された箇所を更新してください。',
     '画像作成前の予約枠の再確認は不要です。予約枠を載せる場合は、掲載済みの状況とその確認日時を使ってください。画像には参考写真のキャプションや見本の文字を入れず、撮影テーマや必要な開催情報を読みやすく配置してください。',
+    '制作を始めるたびに、アクセス権のあるGoogle Driveの「告知画像」フォルダを確認し、新しい本人写真を制作候補にしてください。撮影会テーマ、基本衣装とオプション、会場・スタジオの雰囲気に合わせて本人写真と背景を選んでください。SNS投稿文にはグラビアらしい可愛い絵文字を1〜2個添えてください。',
     !facts.organizerUrl && '主催者の開催ページはサイト掲載情報では未確認です。主催者による対象イベントの案内を確認し、そのURLを投稿文に入れてください。',
     '【撮影会情報（サイト掲載時点の参考）】\n' + facts.text
   ].filter(Boolean).join('\n\n');

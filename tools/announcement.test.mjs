@@ -126,7 +126,7 @@ test('各系統を一つの雰囲気に割り当て、配色・配置・反転�
       assert.equal(variant.left,left);
       return variant.id;
     }))));
-  assert.equal(new Set(variants).size,888);
+  assert.equal(new Set(variants).size,Object.keys(posterThemes).length*24);
 });
 
 test('保存した見本のテーマを雰囲気で絞り込め、おまかせで撮影内容に応じて選べる', t => {
@@ -138,7 +138,10 @@ test('保存した見本のテーマを雰囲気で絞り込め、おまかせ�
 });
 
 test('背景柄はテーマと配色に応じて選ばれ、個別指定と柄なしを優先する', () => {
-  assert.equal(Object.keys(backgroundPatterns).length,15);
+  assert.equal(Object.keys(backgroundPatterns).length,18);
+  for (const [key,pattern] of [['champagne','jewels'],['roseBouquet','bouquet'],['satinRibbon','ribbons'],['pearlRibbon','ribbons']]) {
+    assert.equal(posterPatternKey(posterVariant(key)),pattern);
+  }
   assert.equal(posterPatternKey(posterVariant('winterPetals',0)),'snow');
   assert.equal(posterPatternKey(posterVariant('winterPetals',1)),'lace');
   for (const key of Object.keys(posterThemes)) {
