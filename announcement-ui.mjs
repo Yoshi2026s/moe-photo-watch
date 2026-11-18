@@ -1,5 +1,5 @@
 import { nextBookingChange } from './reservation.mjs?v=gallery-1';
-import { announcementFacts, announcementSkillPrompt } from './announcement-facts.mjs?v=skill-prompt-1';
+import { announcementFacts, announcementSkillPrompt } from './announcement-facts.mjs?v=skill-prompt-2';
 import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=pattern-1';
 import { openPosterEditor } from './poster-editor.mjs?v=pattern-1';
 import { posterPhotos } from './poster-photos.mjs';
@@ -12,6 +12,7 @@ const shuffle = dialog.querySelector('.shuffle');
 const copy = dialog.querySelector('.copy-message');
 const copySkillPrompt = dialog.querySelector('.copy-skill-prompt');
 const skillPrompt = dialog.querySelector('#skill-prompt');
+const promptPreview = dialog.querySelector('.skill-prompt-preview');
 const skillFeedback = dialog.querySelector('.skill-prompt-feedback');
 const format = dialog.querySelector('#poster-format');
 const choosePhotoButton = dialog.querySelector('.choose-photo');
@@ -29,6 +30,7 @@ let event, request = 0, uploaded = null, blank = false, previousPhoto = '', down
 const posterFiles = new WeakMap();
 let displayedText = '', design, photoChoice, crop;
 let press, saveMenuTimer;
+let copyAttempt = 0;
 let selectedTheme = '', selectedPhoto = '', pickerMode, pickerRequest = 0;
 
 themeFilter.add(new Option('すべて',''));
@@ -221,6 +223,7 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
   }
   displayedText = facts.text;
   message.value = facts.text;
+  if (promptPreview.open) refreshSkillPrompt();
   feedback.textContent = '告知画像を作成中…';
   clearPress();
   preview.replaceChildren();
@@ -262,7 +265,9 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
 
 export function openAnnouncement(item) {
   event = item;
-  skillPrompt.hidden = true;
+  copyAttempt++;
+  copySkillPrompt.disabled = false;
+  promptPreview.open = false;
   skillPrompt.value = '';
   skillFeedback.textContent = '';
   uploaded = null;
@@ -408,17 +413,34 @@ copy.addEventListener('click',async () => {
   }
 });
 
-copySkillPrompt.addEventListener('click', async () => {
+function refreshSkillPrompt() {
   const prompt = announcementSkillPrompt(event);
+  if (skillPrompt.value !== prompt) {
+    skillPrompt.value = prompt;
+    skillFeedback.textContent = '';
+  }
+  return prompt;
+}
+promptPreview.addEventListener('toggle', () => {
+  if (dialog.open && promptPreview.open) refreshSkillPrompt();
+});
+
+copySkillPrompt.addEventListener('click', async () => {
+  const prompt = refreshSkillPrompt();
+  const attempt = ++copyAttempt;
+  copySkillPrompt.disabled = true;
   try {
     await navigator.clipboard.writeText(prompt);
-    skillPrompt.hidden = true;
-    skillFeedback.textContent = '依頼文をコピーしました。スキルを使えるChatGPTチャットに貼り付けてください。';
+    if (attempt !== copyAttempt || !dialog.open) return;
+    skillFeedback.textContent = '依頼文をコピーしました。';
   } catch {
-    skillPrompt.value = prompt;
-    skillPrompt.hidden = false;
+    if (attempt !== copyAttempt || !dialog.open) return;
+    promptPreview.open = true;
+    refreshSkillPrompt();
     skillPrompt.focus();
     skillPrompt.select();
-    skillFeedback.textContent = '依頼文を選択しました。端末のコピーメニューをご利用ください。';
+    skillFeedback.textContent = '依頼文を全選択しました。端末のメニューから「コピー」を選んでください。';
+  } finally {
+    if (attempt === copyAttempt) copySkillPrompt.disabled = false;
   }
 });
