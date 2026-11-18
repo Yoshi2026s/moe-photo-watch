@@ -1,6 +1,6 @@
 import { bookingState, jstTime, nextBookingChange, slotBadge, unavailableSlotsSummary } from './reservation.mjs?v=slot-label-3';
 import { dayParts } from './event-date.mjs';
-import { element, makeCalendar } from './event-calendar.mjs?v=full-booking-1';
+import { element, makeCalendar } from './event-calendar.mjs?v=full-booking-2';
 const events = document.querySelector('#events'), updated = document.querySelector('#updated'), refresh = document.querySelector('#refresh');
 const filters = document.querySelector('#filters');
 const query = document.querySelector('#query');
