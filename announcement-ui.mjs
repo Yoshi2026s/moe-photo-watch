@@ -1,8 +1,9 @@
 import { nextBookingChange } from './reservation.mjs?v=gallery-1';
-import { announcementFacts, announcementSkillPrompt } from './announcement-facts.mjs?v=direct-poster-1';
-import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=direct-poster-1';
-import { openPosterEditor } from './poster-editor.mjs?v=direct-poster-1';
-import { posterPhotos } from './poster-photos.mjs';
+import { announcementFacts, announcementSkillPrompt } from './announcement-facts.mjs?v=photo-themes-1';
+import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=photo-themes-1';
+import { openPosterEditor } from './poster-editor.mjs?v=photo-themes-1';
+import { posterPhotos, rankPosterPhotos } from './poster-photos.mjs?v=photo-themes-1';
+import { listMaterialPhotos, savedMaterialFolder, saveMaterialFolder, supportsMaterialFolder, usablePhoto } from './poster-materials.mjs';
 
 const dialog = document.querySelector('#announcement');
 const preview = dialog.querySelector('.poster-preview');
@@ -25,6 +26,8 @@ const themeFilter = picker.querySelector('.theme-filter select');
 const pickerStatus = picker.querySelector('.poster-picker-status');
 const blankButton = picker.querySelector('.blank-photo');
 const fileInput = picker.querySelector('input[type=file]');
+const folderButton = picker.querySelector('.material-folder');
+const removeFolderButton = picker.querySelector('.remove-material-folder');
 const lastDesign = new Map();
 let event, request = 0, uploaded = null, blank = false, previousPhoto = '', downloadUrl = '';
 const posterFiles = new WeakMap();
@@ -32,6 +35,12 @@ let displayedText = '', design, photoChoice, crop;
 let press, saveMenuTimer;
 let copyAttempt = 0;
 let selectedTheme = '', selectedPhoto = '', pickerMode, pickerRequest = 0;
+const photoSources = new WeakMap();
+const thumbnailUrls = [];
+let materialFolder = supportsMaterialFolder ? savedMaterialFolder().catch(() => null) : Promise.resolve(null);
+let currentMaterials = { state:'none', photos:[] };
+let materialSelection = currentMaterials;
+let materialScan = 0;
 
 themeFilter.add(new Option('すべて',''));
 for (const group of Object.keys(posterThemeGroups)) themeFilter.add(new Option(group,group));
@@ -127,19 +136,41 @@ async function loadPhoto(url) {
   return image;
 }
 
-async function choosePhoto() {
+async function refreshMaterials() {
+  const id = ++materialScan;
+  const folder = await materialFolder;
+  const result = await listMaterialPhotos(folder).catch(() => ({state:'error',photos:[]}));
+  if (id === materialScan) currentMaterials = { ...result, folder };
+  return currentMaterials;
+}
+
+function initialMaterials() {
+  const scan = refreshMaterials();
+  // Drive can take a moment to reconnect, even when the browser still has permission.
+  let timer;
+  const cached = new Promise(resolve => {
+    timer = setTimeout(() => resolve({ photos:[] }),1800);
+  });
+  return Promise.race([scan,cached]).finally(() => clearTimeout(timer));
+}
+
+async function loadMaterialPhoto(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    return await loadPhoto(url);
+  } finally { URL.revokeObjectURL(url); }
+}
+
+async function choosePhoto(facts, materials) {
   if (blank || uploaded) return uploaded;
-  const tag = /浴衣|和装|レトロ|古民家/.test(event.title) ? 'kimono'
-    : /野外|屋外|公園|ガーデン/.test(event.title) ? 'outdoor'
-    : design.key === 'cute' || design.key === 'pop' ? 'cute' : '';
-  const ranked = posterPhotos.map(photo => ({
-    src: photo.src,
-    priority: photo.src === selectedPhoto ? 3
-      : photo.src === previousPhoto ? -1 : Math.random() + (photo.tag === tag ? .8 : 0)
-  })).sort((a,b) => b.priority - a.priority);
-  for (const { src } of ranked) {
+  const selected = posterPhotos.find(photo => photo.src === selectedPhoto);
+  const { photos } = await materials;
+  const automatic = rankPosterPhotos([...posterPhotos,...photos.filter(photo => photo.outfits.length)],facts.profile,previousPhoto);
+  for (const candidate of (selected ? [selected,...automatic] : automatic)) {
     try {
-      return await loadPhoto(src);
+      const image = candidate.file ? await loadMaterialPhoto(candidate.file) : await loadPhoto(candidate.src);
+      photoSources.set(image,candidate);
+      return image;
     } catch { /* Try another reviewed reference before leaving the photo space blank. */ }
   }
   return null;
@@ -150,7 +181,7 @@ function showPickerStatus(text) {
   pickerStatus.hidden = !text;
 }
 
-function thumbnailChoice(label, thumbnail, selected, apply) {
+function thumbnailChoice(label, thumbnail, selected, apply, closeOnSelect = true) {
   const button = document.createElement('button');
   const name = document.createElement('span');
   button.type = 'button';
@@ -159,10 +190,43 @@ function thumbnailChoice(label, thumbnail, selected, apply) {
   name.textContent = label;
   button.append(thumbnail,name);
   button.addEventListener('click',() => {
-    picker.close();
+    if (closeOnSelect) picker.close();
     apply();
   });
   return button;
+}
+
+function clearThumbnails() {
+  choices.replaceChildren();
+  for (const url of thumbnailUrls.splice(0)) URL.revokeObjectURL(url);
+}
+
+async function showPhotoChoices(id) {
+  const selection = await refreshMaterials();
+  if (id !== pickerRequest || !picker.open) return;
+  materialSelection = selection;
+  folderButton.hidden = !supportsMaterialFolder;
+  folderButton.textContent = selection.state === 'permission' ? '同期フォルダへのアクセスを許可'
+    : selection.folder ? '同期フォルダを変更' : 'Google Driveの同期フォルダを選ぶ';
+  removeFolderButton.hidden = !selection.folder;
+  const statuses = {
+    ready: '同期フォルダの写真 ' + selection.photos.length + '枚を読み込みました。',
+    permission: '同期フォルダへのアクセスを許可すると写真を追加できます。',
+    error: '同期フォルダを開けませんでした。フォルダを選び直してください。'
+  };
+  showPickerStatus(statuses[selection.state] || '');
+  const candidates = rankPosterPhotos(posterPhotos,announcementFacts(event).profile,undefined,true);
+  for (const photo of [...selection.photos,...candidates]) {
+    const thumbnail = document.createElement('img');
+    thumbnail.alt = '';
+    thumbnail.loading = 'lazy';
+    if (photo.file) {
+      thumbnail.src = URL.createObjectURL(photo.file);
+      thumbnailUrls.push(thumbnail.src);
+    } else thumbnail.src = photo.src;
+    const apply = photo.file ? () => useLocalPhoto(photo.file,photo) : () => useReferencePhoto(photo.src);
+    choices.append(thumbnailChoice(photo.label,thumbnail,!blank && previousPhoto === photo.src,apply,!photo.file));
+  }
 }
 
 async function openPicker(mode) {
@@ -171,19 +235,13 @@ async function openPicker(mode) {
   pickerHeading.textContent = mode === 'photo' ? '写真を選ぶ' : 'デザインを選ぶ';
   blankButton.hidden = fileInput.parentElement.hidden = mode !== 'photo';
   themeFilter.parentElement.hidden = mode === 'photo';
-  choices.replaceChildren();
+  folderButton.hidden = removeFolderButton.hidden = true;
+  clearThumbnails();
   showPickerStatus('');
   picker.showModal();
   picker.scrollTop = 0;
   if (mode === 'photo') {
-    for (const photo of posterPhotos) {
-      const thumbnail = document.createElement('img');
-      thumbnail.alt = '';
-      thumbnail.loading = 'lazy';
-      thumbnail.src = photo.src;
-      choices.append(thumbnailChoice(photo.label,thumbnail,!blank && !uploaded && previousPhoto === photo.src,
-        () => useReferencePhoto(photo.src)));
-    }
+    await showPhotoChoices(id);
     return;
   }
   showPickerStatus('デザインをプレビュー中…');
@@ -210,7 +268,7 @@ async function openPicker(mode) {
   }
 }
 
-async function generate({ newDesign = false, newPhoto = false } = {}) {
+async function generate({ newDesign = false, newPhoto = false, materials = Promise.resolve(currentMaterials) } = {}) {
   const id = ++request;
   const facts = announcementFacts(event);
   const key = [event.date,event.title,event.url].join('|');
@@ -219,7 +277,7 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
   if (newPhoto) choosePhotoButton.querySelector('small').textContent = '読み込み中…';
   if (newPhoto) {
     crop = null;
-    photoChoice = choosePhoto();
+    photoChoice = choosePhoto(facts,materials);
   }
   displayedText = facts.text;
   message.value = facts.text;
@@ -232,8 +290,8 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
   try {
     const photo = await photoChoice;
     if (id !== request) return;
-    const reference = photo && !uploaded ? posterPhotos.find(ref => photo.src.endsWith('/'+ref.src)) : null;
-    if (reference) previousPhoto = reference.src;
+    const reference = photo && photoSources.get(photo);
+    previousPhoto = reference?.src || '';
     choosePhotoButton.querySelector('small').textContent = reference?.label || (photo ? '端末の写真' : '空欄');
     const canvas = renderPoster(facts,design,photo,format.value,{ crop });
     const blob = await new Promise((resolve,reject) =>
@@ -278,7 +336,7 @@ export function openAnnouncement(item) {
   dialog.showModal();
   dialog.scrollTop = 0;
   scheduleBookingCheck();
-  generate({ newDesign: true, newPhoto: true });
+  generate({ newDesign: true, newPhoto: true, materials:initialMaterials() });
 }
 
 shuffle.addEventListener('click',() => generate({ newDesign: true }));
@@ -301,7 +359,7 @@ picker.querySelector('.close-picker').addEventListener('click',() => picker.clos
 picker.addEventListener('close',() => {
   if (!picker.open) {
     pickerRequest++;
-    choices.replaceChildren();
+    clearThumbnails();
   }
 });
 format.addEventListener('change',() => generate());
@@ -373,20 +431,18 @@ picker.querySelector('.auto-choice').addEventListener('click',() => {
     generate({ newDesign: true });
   }
 });
-fileInput.addEventListener('change',async () => {
-  const file = fileInput.files[0];
-  if (!file) return;
-  if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 12 * 1024 * 1024) {
+async function useLocalPhoto(file, source) {
+  if (!usablePhoto(file)) {
     showPickerStatus('12MB以内のJPEG・PNG・WebP画像を選んでください。');
     fileInput.value = '';
     return;
   }
   const id = ++pickerRequest;
   showPickerStatus('写真を読み込み中…');
-  const url = URL.createObjectURL(file);
   try {
-    const image = await loadPhoto(url);
+    const image = await loadMaterialPhoto(file);
     if (id !== pickerRequest || !picker.open) return;
+    if (source) photoSources.set(image,source);
     uploaded = image;
     blank = false;
   } catch {
@@ -395,12 +451,39 @@ fileInput.addEventListener('change',async () => {
       fileInput.value = '';
     }
     return;
-  } finally {
-    URL.revokeObjectURL(url);
   }
   picker.close();
   generate({ newPhoto: true });
+}
+fileInput.addEventListener('change',() => {
+  if (fileInput.files[0]) useLocalPhoto(fileInput.files[0]);
 });
+
+async function updateMaterialFolder(chooseFolder) {
+  const id = ++pickerRequest;
+  folderButton.disabled = removeFolderButton.disabled = true;
+  try {
+    const nextFolder = await chooseFolder();
+    await saveMaterialFolder(nextFolder);
+    materialFolder = Promise.resolve(nextFolder);
+    currentMaterials = { state:'none', photos:[] };
+    if (id !== pickerRequest || !picker.open) return;
+    clearThumbnails();
+    await showPhotoChoices(id);
+  } catch (error) {
+    if (id === pickerRequest && picker.open && error.name !== 'AbortError') showPickerStatus('フォルダを登録できませんでした。');
+  } finally {
+    folderButton.disabled = removeFolderButton.disabled = false;
+  }
+}
+folderButton.addEventListener('click',() => updateMaterialFolder(async () => {
+  if (materialSelection.state === 'permission') {
+    await materialSelection.folder.requestPermission({mode:'read'});
+    return materialSelection.folder;
+  }
+  return window.showDirectoryPicker({id:'announcement-photos',mode:'read'});
+}));
+removeFolderButton.addEventListener('click',() => updateMaterialFolder(() => null));
 copy.addEventListener('click',async () => {
   message.value = announcementFacts(event).text;
   try {

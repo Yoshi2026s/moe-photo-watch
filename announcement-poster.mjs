@@ -1,8 +1,21 @@
 import { drawReferenceDecor, referencePosterThemes } from './poster-reference-themes.mjs?v=reference-1';
 import { drawLettering, posterLettering, ribbonColors } from './poster-lettering.mjs?v=poster-density-1';
-import { drawPosterPattern, posterPatternKey } from './poster-patterns.mjs';
+import { drawPosterPattern, posterPatternKey } from './poster-patterns.mjs?v=photo-themes-1';
+import { posterThemeProfile } from './poster-theme-profile.mjs';
 
 export const posterThemes = {
+  champagne: { label:'シャンパンゴールド', frame:'deco', layout:'feature', pattern:'jewels', palettes:[
+    ['#201327','#fff6e2','#e5bb73'], ['#401926','#fff0e8','#e7a780'], ['#182539','#fff4e1','#d4b384']
+  ] },
+  satinRibbon: { label:'サテンリボン', frame:'round', layout:'feature', pattern:'ribbons', palettes:[
+    ['#fbe3ef','#612a52','#bf709f'], ['#eee6fa','#483565','#a280be'], ['#e4f5eb','#2d524b','#76a79a']
+  ] },
+  roseBouquet: { label:'ローズブーケ', frame:'round', layout:'feature', pattern:'bouquet', palettes:[
+    ['#fff1ef','#6b3048','#bb6e86'], ['#f6edf8','#613c67','#a277ae'], ['#fff5e6','#6b3e3f','#c18475']
+  ] },
+  pearlRibbon: { label:'パールとリボン', frame:'deco', layout:'stack', pattern:'ribbons', palettes:[
+    ['#fff3e7','#6a3951','#ba8195'], ['#241b36','#fff4f4','#d9a2ca'], ['#eaf2fb','#385477','#839ec0']
+  ] },
   invitation: { label: '花束の招待状', frame: 'round', layout: 'feature', scene: 'blossom', palettes: [
     ['#fff6f2','#66364a','#ba697b'], ['#f0f5ec','#324f43','#799679'], ['#f7f0fb','#573d67','#ae88ae']
   ] },
@@ -70,8 +83,8 @@ export const posterThemes = {
 };
 
 export const posterThemeGroups = {
-  '華やか': ['glamour','editorial','pearl','noir','artdeco'],
-  'かわいい': ['cute','floral','heart','candy','doll','invitation'],
+  '華やか': ['champagne','pearlRibbon','glamour','editorial','pearl','noir','artdeco'],
+  'かわいい': ['satinRibbon','roseBouquet','cute','floral','heart','candy','doll','invitation'],
   'POP': ['pop','comic','neon','soda','print'],
   '季節・レトロ': ['retro','natural','night','coastal','paper'],
   '保存した見本': Object.keys(referencePosterThemes)
@@ -103,18 +116,25 @@ export function posterVariant(key, palette = 0, left = false, layout) {
 
 export function nextDesign(facts, previous, selectedTheme) {
   const season = seasons[Math.floor(((facts.month || 1) % 12) / 3)];
-  const special = /イルミネーション|夜景|ナイト/.test(facts.title) ? ['lanternNight','roseIllumination']
-    : /学園|学校|制服/.test(facts.title) ? ['chalkboard','cute']
-    : /レトロ|浴衣|古民家/.test(facts.title) ? ['retro','retroDiner','pressedAutumn']
-    : /ドレス|ホテル|舞台/.test(facts.title) ? ['glamour','goldCurtains','velvetHotel','roseLights']
-    : /花|flower/i.test(facts.title) ? ['floral','pinkRoseLace','lavenderBouquet']
-    : /animal|バニー/i.test(facts.title) ? ['cute','mintRibbon','ivoryLace']
-    : /野外|屋外|公園|ガーデン/.test(facts.title) ? ['natural','winterPetals','pinkMaple'] : [];
+  const profile = facts.profile || posterThemeProfile(facts);
+  const scenes = {
+    night:['lanternNight','roseIllumination','champagne'],
+    school:['chalkboard','satinRibbon','cute'],
+    retro:['retro','retroDiner','pressedAutumn','pinkMaple'],
+    luxury:['champagne','goldCurtains','velvetHotel','roseLights','pearlRibbon'],
+    flower:['roseBouquet','pinkRoseLace','lavenderBouquet','floral'],
+    pool:['coastal','soda','coralStars','pearlRibbon'],
+    outdoor:['natural','pinkMaple','roseBouquet'],
+    light:['pearlRibbon','ivoryLace','satinRibbon'],
+    monochrome:['noir','champagne','editorial']
+  };
+  const special = scenes[profile.scene] || (profile.outfit === 'animal' ? ['satinRibbon','cute','mintRibbon']
+    : profile.outfit === 'uniform' ? scenes.school
+    : profile.outfit === 'swim' || profile.optionSwim ? ['champagne','glamour','satinRibbon','coastal'] : []);
   const automatic = !Object.hasOwn(posterThemes, selectedTheme);
-  const keys = automatic ? [...new Set([...special, ...season, ...Object.keys(posterThemes)])] : [selectedTheme];
-  const choices = automatic ? keys.filter(key => key !== previous?.key) : keys;
-  const weighted = choices.flatMap(key => Array(special.includes(key) ? 5 : season.includes(key) ? 3 : 1).fill(key));
-  const key = weighted[Math.floor(Math.random() * weighted.length)];
+  const defaults = [...new Set(['champagne','satinRibbon','roseBouquet','pearlRibbon',...season])];
+  const keys = automatic ? (special.length ? special : defaults).filter(key => key !== previous?.key) : [selectedTheme];
+  const key = keys[Math.floor(Math.random() * keys.length)];
   const theme = posterThemes[key];
   const variants = theme.palettes.flatMap((_, index) =>
     [false, true].map(left => posterVariant(key,index,left)));

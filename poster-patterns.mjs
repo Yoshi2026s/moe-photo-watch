@@ -30,6 +30,52 @@ function star(ctx,x,y,radius) {
 }
 
 export const backgroundPatterns = {
+  ribbons: { label:'サテンのリボン柄', size:180, draw(ctx) {
+    for (const [x,y,angle,scale] of [[48,48,-.21,1],[133,135,.25,.65]]) {
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.rotate(angle);
+      ctx.scale(scale,scale);
+      ctx.beginPath();
+      for (const side of [-1,1]) {
+        ctx.moveTo(0,0);
+        ctx.bezierCurveTo(29*side,-29,47*side,-16,36*side,7);
+        ctx.quadraticCurveTo(26*side,13,0,0);
+        ctx.quadraticCurveTo(15*side,11,22*side,26);
+        ctx.lineTo(6*side,19);
+        ctx.lineTo(0,26);
+      }
+      ctx.stroke();
+      ctx.fillRect(-4,-4,8,8);
+      ctx.restore();
+    }
+  } },
+  bouquet: { label:'花束と小花', size:190, draw(ctx) {
+    for (const [x,y] of [[43,51],[137,145]]) {
+      flower(ctx,x,y,28,6);
+      flower(ctx,x+23,y+27,12,5);
+      flower(ctx,x-24,y+22,9,5);
+      ctx.beginPath();
+      ctx.moveTo(x,y+57);
+      ctx.quadraticCurveTo(x-19,y+32,x-28,y+36);
+      ctx.quadraticCurveTo(x-28,y+50,x,y+57);
+      ctx.stroke();
+    }
+  } },
+  jewels: { label:'宝石と金のきらめき', size:168, opacity:.32, draw(ctx) {
+    for (const [x,y] of [[47,44],[125,122]]) {
+      ctx.beginPath();
+      ctx.moveTo(x,y-20);
+      ctx.lineTo(x+15,y);
+      ctx.lineTo(x,y+20);
+      ctx.lineTo(x-15,y);
+      ctx.closePath();
+      segment(ctx,x-15,y,x+15,y);
+      ctx.stroke();
+      star(ctx,x+29,y+19,10);
+      star(ctx,x-23,y-22,7);
+    }
+  } },
   flowers: { label: '小花柄', size: 156, draw(ctx) {
     flower(ctx,42,42,24,5);
     flower(ctx,114,114,16,5);
@@ -168,21 +214,21 @@ export const backgroundPatterns = {
 
 const byScene = {
   lights: ['stars','artdeco','dots'],
-  blossom: ['flowers','lace','hearts'],
-  lace: ['lace','flowers','hearts'],
+  blossom: ['bouquet','lace','ribbons'],
+  lace: ['lace','bouquet','ribbons'],
   diner: ['gingham','check','stripe'],
   stars: ['stars','confetti','dots'],
-  curtain: ['artdeco','argyle','lace'],
+  curtain: ['jewels','artdeco','lace'],
   classroom: ['argyle','stripe','check'],
   maple: ['leaves','asanoha','flowers'],
   winter: ['snow','lace','argyle']
 };
 const byTheme = {
-  glamour: ['artdeco','lace','argyle'],
-  cute: ['hearts','flowers','gingham'],
+  glamour: ['jewels','lace','artdeco'],
+  cute: ['ribbons','flowers','hearts'],
   pop: ['confetti','stripe','dots'],
   editorial: ['stripe','argyle','check'],
-  floral: ['flowers','lace','leaves'],
+  floral: ['bouquet','lace','flowers'],
   retro: ['asanoha','check','artdeco'],
   natural: ['leaves','gingham','flowers'],
   night: ['stars','snow','artdeco'],
@@ -204,6 +250,7 @@ export function posterPatternKey(design) {
   if (design.backgroundPattern === 'none' || Object.hasOwn(backgroundPatterns,design.backgroundPattern)) {
     return design.backgroundPattern;
   }
+  if (design.pattern) return design.pattern;
   const candidates = (design.scene ? byScene[design.scene] : byTheme[design.key]) || ['dots'];
   return candidates[(design.palette || 0)%candidates.length];
 }
@@ -214,7 +261,7 @@ export function drawPosterPattern(ctx,width,height,design) {
   const tile = document.createElement('canvas');
   tile.width = tile.height = motif.size;
   const brush = tile.getContext('2d');
-  brush.strokeStyle = brush.fillStyle = design.colors[1];
+  brush.strokeStyle = brush.fillStyle = posterPatternKey(design) === 'jewels' ? design.colors[2] : design.colors[1];
   brush.lineWidth = 2.8;
   brush.lineCap = 'round';
   motif.draw(brush,motif.size);
