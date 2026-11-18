@@ -1,5 +1,5 @@
 import { nextBookingChange } from './reservation.mjs?v=gallery-1';
-import { announcementFacts } from './announcement-facts.mjs?v=gallery-1';
+import { announcementFacts, announcementSkillPrompt } from './announcement-facts.mjs?v=skill-prompt-1';
 import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=pattern-1';
 import { openPosterEditor } from './poster-editor.mjs?v=pattern-1';
 import { posterPhotos } from './poster-photos.mjs';
@@ -10,6 +10,9 @@ const message = dialog.querySelector('textarea');
 const feedback = dialog.querySelector('[role=status]');
 const shuffle = dialog.querySelector('.shuffle');
 const copy = dialog.querySelector('.copy-message');
+const copySkillPrompt = dialog.querySelector('.copy-skill-prompt');
+const skillPrompt = dialog.querySelector('#skill-prompt');
+const skillFeedback = dialog.querySelector('.skill-prompt-feedback');
 const format = dialog.querySelector('#poster-format');
 const choosePhotoButton = dialog.querySelector('.choose-photo');
 const chooseDesignButton = dialog.querySelector('.choose-design');
@@ -259,6 +262,9 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
 
 export function openAnnouncement(item) {
   event = item;
+  skillPrompt.hidden = true;
+  skillPrompt.value = '';
+  skillFeedback.textContent = '';
   uploaded = null;
   blank = false;
   fileInput.value = '';
@@ -399,5 +405,20 @@ copy.addEventListener('click',async () => {
     message.focus();
     message.select();
     feedback.textContent = '投稿文を選択しました。端末のコピーメニューをご利用ください。';
+  }
+});
+
+copySkillPrompt.addEventListener('click', async () => {
+  const prompt = announcementSkillPrompt(event);
+  try {
+    await navigator.clipboard.writeText(prompt);
+    skillPrompt.hidden = true;
+    skillFeedback.textContent = '依頼文をコピーしました。スキルを使えるChatGPTチャットに貼り付けてください。';
+  } catch {
+    skillPrompt.value = prompt;
+    skillPrompt.hidden = false;
+    skillPrompt.focus();
+    skillPrompt.select();
+    skillFeedback.textContent = '依頼文を選択しました。端末のコピーメニューをご利用ください。';
   }
 });
