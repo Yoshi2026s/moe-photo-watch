@@ -1,4 +1,4 @@
-import { bookingState, jstTime, slotBadge, unavailableSlotsSummary } from './reservation.mjs?v=slot-label-3';
+import { bookingState, jstTime, slotBadge, slotConfirmation, unavailableSlotsSummary } from './reservation.mjs?v=gallery-1';
 import { dayParts } from './event-date.mjs';
 const clean = value => typeof value === 'string' ? value.trim() : '';
 
@@ -41,7 +41,7 @@ export function announcementFacts(event, now = Date.now()) {
       return { slot, time, start: start ? Number(start[1]) * 60 + Number(start[2]) : Infinity };
     }).sort((a, b) => a.start - b.start);
     const lines = ordered.map(({slot, time}) => [clean(slot.label), time || '時間未確認', slotBadge(slot.status, event.kind).label].join('　'));
-    rows.push([state.slotMode === 'record' ? '予約枠（確認時点の記録）' : '予約枠（確認時点）', lines.join('\n')]);
+    rows.push([state.slotMode === 'record' ? '予約枠（記録）' : '予約枠', ['最終確認：' + slotConfirmation(event), ...lines].join('\n')]);
   } else if (state.slotMode !== 'omit' && !state.cancelled && (!event.kind || event.kind === 'individual_photo')) {
     rows.push(['予約枠', '枠ごとの状況は未確認']);
   }
@@ -58,7 +58,7 @@ export function announcementFacts(event, now = Date.now()) {
   const dateLabel = date?.label || '開催日未確認';
   const openSlots = slots.filter(slot => slotBadge(slot.status).variant === 'available').length;
   let banner = state.pending ? '予約受付開始予定' : state.label;
-  if (!banner && openSlots) banner = '空き' + openSlots + '枠（確認時点）';
+  if (!banner && openSlots) banner = '空き' + openSlots + '枠';
   if (!banner || banner === '予約受付中') banner = unavailableSlotsSummary(slots, event.kind) || banner;
   const name = title.includes('雪餅羽もえ') ? title : '雪餅羽もえ｜' + title;
   const text = [

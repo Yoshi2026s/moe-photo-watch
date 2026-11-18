@@ -1,0 +1,21 @@
+export const posterPhotos = [
+  ['portrait', '和装・縁側', 'kimono'],
+  ['garden', '和装・庭園', 'outdoor'],
+  ['yukata', '和装・室内', 'kimono'],
+  ['tatami', '和装・畳の間', 'kimono'],
+  ['amber-wide', 'アンバースタジオ・ワイド', 'warm'],
+  ['amber-portrait', 'アンバースタジオ・ポートレート', 'warm'],
+  ['amber-lounge', 'アンバースタジオ・ラウンジ', 'warm'],
+  ['amber-closeup', 'アンバースタジオ・アップ', 'warm'],
+  ['amber-green', 'アンバースタジオ・グリーン', 'warm'],
+  ['blue-ribbon', 'ブルーリボン・ポートレート', 'cute'],
+  ['blue-ribbon-green', 'ブルーリボン・グリーン', 'cute'],
+  ['blue-ribbon-red', 'ブルーリボン・レッド', 'cute'],
+  ['white-studio', 'ホワイト・スタジオ', 'cool'],
+  ['white-sofa', 'ホワイト・ソファ', 'cool'],
+  ['white-garden', 'ホワイト・グリーン', 'cool'],
+  ['gray-studio', 'グレー・スタジオ', 'cool'],
+  ['gray-closeup', 'グレー・アップ', 'cool'],
+  ['window', '窓辺・全身', 'warm'],
+  ['window-portrait', '窓辺・ポートレート', 'warm']
+].map(([name, label, tag]) => ({ name, label, tag, src: 'photos/' + name + '.webp' }));

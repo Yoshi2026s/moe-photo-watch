@@ -1,6 +1,7 @@
-import { nextBookingChange } from './reservation.mjs?v=slot-label-3';
-import { announcementFacts } from './announcement-facts.mjs?v=slot-label-3';
-import { nextDesign, renderPosters } from './announcement-poster.mjs?v=booking-poster-1';
+import { nextBookingChange } from './reservation.mjs?v=gallery-1';
+import { announcementFacts } from './announcement-facts.mjs?v=gallery-1';
+import { nextDesign, posterThemes, renderPosters } from './announcement-poster.mjs?v=gallery-1';
+import { posterPhotos } from './poster-photos.mjs';
 
 const dialog = document.querySelector('#announcement');
 const preview = dialog.querySelector('.poster-preview');
@@ -9,9 +10,12 @@ const feedback = dialog.querySelector('[role=status]');
 const shuffle = dialog.querySelector('.shuffle');
 const copy = dialog.querySelector('.copy-message');
 const format = dialog.querySelector('#poster-format');
+const themeSelect = dialog.querySelector('#poster-style');
+const photoSelect = dialog.querySelector('#poster-photo');
 const fileInput = dialog.querySelector('input[type=file]');
 const lastDesign = new Map();
-const photos = ['photos/portrait.webp','photos/garden.webp','photos/yukata.webp'];
+for (const [key, theme] of Object.entries(posterThemes)) themeSelect.add(new Option(theme.label, key));
+for (const photo of posterPhotos) photoSelect.add(new Option(photo.label, photo.src));
 let event, request = 0, uploaded = null, blank = false, previousPhoto = '', downloads = [];
 let displayedText = '', design, photoChoice;
 let press, saveMenuTimer;
@@ -78,18 +82,17 @@ async function loadPhoto(url) {
 
 async function choosePhoto() {
   if (blank || uploaded) return uploaded;
-  const preferred = photos.filter(path => path !== previousPhoto);
-  const pool = [...preferred];
-  if (previousPhoto) pool.push(previousPhoto);
-  const themed = /浴衣|和装|レトロ|古民家/.test(event.title) ? 'photos/yukata.webp'
-    : /野外|屋外|公園|ガーデン/.test(event.title) ? 'photos/garden.webp' : '';
-  const weighted = preferred.includes(themed) ? [...preferred,themed] : preferred;
-  const first = pool.indexOf(weighted[Math.floor(Math.random() * weighted.length)]);
-  [pool[0], pool[first]] = [pool[first], pool[0]];
-  for (const path of pool) {
+  const tag = /浴衣|和装|レトロ|古民家/.test(event.title) ? 'kimono'
+    : /野外|屋外|公園|ガーデン/.test(event.title) ? 'outdoor'
+    : design.key === 'cute' || design.key === 'pop' ? 'cute' : '';
+  const ranked = posterPhotos.map(photo => ({
+    src: photo.src,
+    priority: photo.src === photoSelect.value ? 3
+      : photo.src === previousPhoto ? -1 : Math.random() + (photo.tag === tag ? .8 : 0)
+  })).sort((a,b) => b.priority - a.priority);
+  for (const { src } of ranked) {
     try {
-      const image = await loadPhoto(path);
-      return image;
+      return await loadPhoto(src);
     } catch { /* Try another reviewed reference before leaving the photo space blank. */ }
   }
   return null;
@@ -99,7 +102,7 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
   const id = ++request;
   const facts = announcementFacts(event);
   const key = [event.date,event.title,event.url].join('|');
-  if (newDesign) design = nextDesign(facts,lastDesign.get(key));
+  if (newDesign) design = nextDesign(facts,lastDesign.get(key),themeSelect.value);
   if (newPhoto) photoChoice = choosePhoto();
   displayedText = facts.text;
   message.value = facts.text;
@@ -131,7 +134,7 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
       figure.append(pic,link);
       preview.append(figure);
     }
-    if (photo && !uploaded) previousPhoto = photos.find(path => photo.src.endsWith('/'+path)) || '';
+    if (photo && !uploaded) previousPhoto = posterPhotos.find(ref => photo.src.endsWith('/'+ref.src))?.src || '';
     lastDesign.set(key,design);
     feedback.textContent = photo ? '告知画像を' + pages.length + '枚作成しました。' : '写真を挿入できる空欄で作成しました。';
   } catch {
@@ -146,6 +149,7 @@ export function openAnnouncement(item) {
   uploaded = null;
   blank = false;
   fileInput.value = '';
+  photoSelect.value = '';
   dialog.querySelector('.event-name').textContent = item.title;
   dialog.showModal();
   dialog.scrollTop = 0;
@@ -153,7 +157,8 @@ export function openAnnouncement(item) {
   generate({ newDesign: true, newPhoto: true });
 }
 
-shuffle.addEventListener('click',() => generate({ newDesign: true, newPhoto: true }));
+shuffle.addEventListener('click',() => generate({ newDesign: true }));
+themeSelect.addEventListener('change',() => generate({ newDesign: true }));
 format.addEventListener('change',() => generate());
 dialog.querySelector('.close-dialog').addEventListener('click',() => dialog.close());
 dialog.addEventListener('close',() => {
@@ -190,11 +195,16 @@ dialog.querySelector('.blank-photo').addEventListener('click',() => {
   fileInput.value = '';
   generate({ newPhoto: true });
 });
-dialog.querySelector('.auto-photo').addEventListener('click',() => {
+function useReferencePhoto() {
   blank = false;
   uploaded = null;
   fileInput.value = '';
   generate({ newPhoto: true });
+}
+photoSelect.addEventListener('change',useReferencePhoto);
+dialog.querySelector('.auto-photo').addEventListener('click',() => {
+  photoSelect.value = '';
+  useReferencePhoto();
 });
 fileInput.addEventListener('change',async () => {
   const file = fileInput.files[0];

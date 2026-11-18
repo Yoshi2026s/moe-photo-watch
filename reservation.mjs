@@ -5,6 +5,11 @@ export function jstTime(value) {
   return Date.parse(value.replaceAll('/', '-').replace(' ', 'T') + ':00+09:00');
 }
 
+export function slotConfirmation(event) {
+  const checked = event.slots_checked_at === undefined ? event.checked_at : event.slots_checked_at;
+  return Number.isFinite(jstTime(checked)) ? checked + '（日本時間）' : '未確認';
+}
+
 export function nextBookingChange(event, now) {
   const times = [jstTime(event.booking_opens_at), jstTime(event.booking_closes_at), jstTime(event.date + ' 00:00') + 86400000];
   return Math.min(Infinity, ...times.filter(at => at > now));
@@ -24,7 +29,7 @@ export function slotBadge(value, eventKind) {
 export function unavailableSlotsSummary(slots, eventKind) {
   const badges = slots.map(slot => slotBadge(slot.status, eventKind));
   if (!badges.length || badges.some(badge => badge.variant !== 'unavailable')) return '';
-  return badges.every(badge => badge.label === '予約済') ? '掲載枠はすべて予約済（確認時点）' : '掲載枠に空きなし（確認時点）';
+  return badges.every(badge => badge.label === '予約済') ? '掲載枠はすべて予約済' : '掲載枠に空きなし';
 }
 
 export function bookingState(event, now = Date.now()) {
