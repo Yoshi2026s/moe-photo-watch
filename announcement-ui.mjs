@@ -23,6 +23,7 @@ const blankButton = picker.querySelector('.blank-photo');
 const fileInput = picker.querySelector('input[type=file]');
 const lastDesign = new Map();
 let event, request = 0, uploaded = null, blank = false, previousPhoto = '', downloads = [];
+const posterFiles = new WeakMap();
 let displayedText = '', design, photoChoice, crop;
 let press, saveMenuTimer;
 let selectedTheme = '', selectedPhoto = '', pickerMode, pickerRequest = 0;
@@ -60,12 +61,14 @@ preview.addEventListener('pointerup', e => {
   saveMenuTimer = setTimeout(() => {
     if (!image.isConnected) return;
     const figure = image.closest('figure');
-    const save = figure.querySelector('a[download]').cloneNode(false);
+    const actions = figure.querySelector('.poster-actions');
+    const menu = document.createElement('div');
+    menu.className = 'press-save';
+    menu.append(...Array.from(actions.querySelectorAll('.photo-share, .open-poster-image'), action => action.cloneNode(true)));
+    figure.append(menu);
     const bounds = image.getBoundingClientRect();
-    save.className = 'press-save';
-    save.textContent = 'この画像を保存';
-    save.style.top = Math.max(0, Math.min(y - bounds.top - 24, bounds.height - 48)) + 'px';
-    figure.append(save);
+    const height = menu.offsetHeight;
+    menu.style.top = Math.max(0, Math.min(y - bounds.top - height/2, bounds.height - height)) + 'px';
   }, 120);
 });
 preview.addEventListener('contextmenu', clearPress);
@@ -86,6 +89,30 @@ function posterImageSource(blob) {
     reader.onerror = () => resolve(null);
     reader.readAsDataURL(blob);
   });
+}
+
+function posterActions(file, url, downloadLabel) {
+  const actions = document.createElement('div');
+  actions.className = 'poster-actions';
+  if (typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
+    const share = document.createElement('button');
+    share.type = 'button';
+    share.className = 'photo-share';
+    share.textContent = '写真に保存…';
+    actions.append(share);
+  }
+  const open = document.createElement('a');
+  open.className = 'open-poster-image';
+  open.href = url;
+  open.target = '_blank';
+  open.rel = 'noopener';
+  open.textContent = '画像だけ開く';
+  const download = document.createElement('a');
+  download.href = url;
+  download.download = file.name;
+  download.textContent = downloadLabel;
+  actions.append(open,download);
+  return actions;
 }
 
 async function loadPhoto(url) {
@@ -214,12 +241,15 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
       const pic = document.createElement('img');
       pic.src = imageSources[index] || url;
       pic.alt = facts.title + 'の告知画像 ' + (index+1) + '枚目。内容はSNS投稿文でも確認できます。';
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = [event.date?.replaceAll('/','-'),facts.title,index+1].join('_').replace(/[\\/:*?"<>|]/g,'-') + '.png';
-      link.textContent = '画像を保存' + (pages.length > 1 ? '（' + (index+1) + '／' + pages.length + '）' : '（PNG）');
+      const name = [event.date?.replaceAll('/','-'),facts.title,index+1].join('_').replace(/[\\/:*?"<>|]/g,'-') + '.png';
+      const file = new File([blob],name,{ type: 'image/png' });
+      const downloadLabel = 'PNGをダウンロード' + (pages.length > 1 ? '（' + (index+1) + '／' + pages.length + '）' : '');
       const figure = document.createElement('figure');
-      figure.append(pic,link);
+      posterFiles.set(figure,file);
+      const status = document.createElement('p');
+      status.className = 'poster-action-status';
+      status.setAttribute('role','status');
+      figure.append(pic,posterActions(file,url,downloadLabel),status);
       preview.append(figure);
     }
     lastDesign.set(key,design);
@@ -291,10 +321,27 @@ function scheduleBookingCheck() {
 }
 dialog.addEventListener('close',() => clearTimeout(timeCheck));
 document.addEventListener('visibilitychange',() => { if (!document.hidden) refreshBooking(); });
-dialog.addEventListener('click',e => {
-  if (e.target.closest('.poster-preview a') && displayedText !== announcementFacts(event).text) {
+preview.addEventListener('click',async e => {
+  const action = e.target.closest('a, .photo-share');
+  if (!action) return;
+  if (displayedText !== announcementFacts(event).text) {
     e.preventDefault();
     generate();
+    return;
+  }
+  if (action.matches('.photo-share')) {
+    const figure = action.closest('figure');
+    const status = figure.querySelector('.poster-action-status');
+    const file = posterFiles.get(figure);
+    action.disabled = true;
+    status.textContent = '';
+    try {
+      await navigator.share({ files: [file] });
+    } catch (error) {
+      if (error?.name !== 'AbortError') status.textContent = '「画像だけ開く」から、画像を長押しして保存できます。';
+    } finally {
+      action.disabled = false;
+    }
   }
 });
 blankButton.addEventListener('click',() => {
