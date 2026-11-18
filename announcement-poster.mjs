@@ -186,7 +186,7 @@ function portrait(ctx, photo, x, y, w, h, design) {
   ctx.restore();
 }
 
-export function renderPosters(facts, design, photo, format = 'story') {
+export function renderPosters(facts, design, photo, format = 'story', { thumbnail = false } = {}) {
   const story = format === 'story';
   const H = story ? 1920 : 1350;
   const time = facts.rows.find(([label]) => label === '開催時間')?.[1] || '';
@@ -194,13 +194,15 @@ export function renderPosters(facts, design, photo, format = 'story') {
   const [, ink, accent] = design.colors;
   const headingFont = design.bold ? sans : serif;
   const pages = [];
+  const scale = thumbnail ? .2 : 1;
   let ctx, y;
   function startPage(first) {
     const canvas = document.createElement('canvas');
-    canvas.width = W;
-    canvas.height = H;
+    canvas.width = W * scale;
+    canvas.height = H * scale;
     pages.push(canvas);
     ctx = canvas.getContext('2d');
+    ctx.scale(scale,scale);
     backdrop(ctx,H,design);
     ctx.font = '700 ' + (first ? 56 : 36) + 'px ' + headingFont;
     ctx.fillText('雪餅羽もえ',62,first ? 100 : 66);
@@ -305,7 +307,10 @@ export function renderPosters(facts, design, photo, format = 'story') {
     const wrapped = lines(ctx,value,900);
     let i = 0;
     while (i < wrapped.length) {
-      if (y + 90 > H - 105) startPage(false);
+      if (y + 90 > H - 105) {
+        if (thumbnail) return false;
+        startPage(false);
+      }
       ctx.fillStyle = accent;
       ctx.fillRect(60,y-18,6,25);
       ctx.fillStyle = ink;
@@ -323,7 +328,7 @@ export function renderPosters(facts, design, photo, format = 'story') {
   startPage(true);
   for (const [label,value] of facts.rows) {
     if ((label === '受付' && value === facts.banner) || (label === '開催時間' && heroTime)) continue;
-    row(label,value);
+    if (row(label,value) === false) break;
   }
   pages.forEach((canvas,i) => {
     const c = canvas.getContext('2d');
@@ -334,7 +339,7 @@ export function renderPosters(facts, design, photo, format = 'story') {
     if (facts.note) c.fillText(facts.note,58,H-55,W-116);
     c.fillText(facts.checked ? '情報確認　' + facts.checked + '（日本時間）' : '最新情報は公式案内へ',58,H-19);
     c.textAlign = 'right';
-    c.fillText((i+1) + ' / ' + pages.length,W-58,H-27);
+    if (!thumbnail) c.fillText((i+1) + ' / ' + pages.length,W-58,H-27);
   });
   return pages;
 }
