@@ -1,4 +1,4 @@
-import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=live-booking-1';
+import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=direct-poster-1';
 import { letteringOptions } from './poster-lettering.mjs?v=poster-density-1';
 import { backgroundPatterns } from './poster-patterns.mjs';
 
