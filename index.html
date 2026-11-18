@@ -2,7 +2,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/moe-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/moe-192.png">
-<link rel="stylesheet" href="style.css?v=full-booking-2"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
+<link rel="stylesheet" href="style.css?v=gallery-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
 <fieldset id="event-view" class="view-picker">
   <legend>表示形式</legend>
   <div class="view-choices">
@@ -21,10 +21,14 @@
   <div class="design-tools">
     <button type="button" class="copy-message">投稿文をコピー</button>
     <button type="button" class="shuffle">デザインを変える</button>
+    <label class="format-label">デザイン<select id="poster-style">
+      <option value="">おまかせ</option>
+    </select></label>
     <label class="format-label">画像サイズ<select id="poster-format">
       <option value="story">縦長（9:16）</option><option value="feed">フィード（4:5）</option>
     </select></label>
     <details><summary>写真を変更</summary><div class="photo-tools">
+      <label>参考写真 <select id="poster-photo"><option value="">おまかせ</option></select></label>
       <button type="button" class="auto-photo">参考写真から選び直す</button>
       <button type="button" class="blank-photo">写真枠を空欄にする</button>
       <label>端末の写真を使う<input type="file" accept="image/jpeg,image/png,image/webp"></label>
@@ -37,4 +41,4 @@
   <label class="message-label" for="social-message">SNS投稿文</label>
   <textarea id="social-message" rows="8" readonly></textarea>
 </dialog>
-<script type="module" src="app.js?v=full-booking-2"></script></body></html>
+<script type="module" src="app.js?v=gallery-1"></script></body></html>

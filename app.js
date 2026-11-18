@@ -1,4 +1,4 @@
-import { bookingState, jstTime, nextBookingChange, slotBadge, unavailableSlotsSummary } from './reservation.mjs?v=slot-label-3';
+import { bookingState, jstTime, nextBookingChange, slotBadge, slotConfirmation, unavailableSlotsSummary } from './reservation.mjs?v=gallery-1';
 import { dayParts } from './event-date.mjs';
 import { element, makeCalendar } from './event-calendar.mjs?v=full-booking-2';
 const events = document.querySelector('#events'), updated = document.querySelector('#updated'), refresh = document.querySelector('#refresh');
@@ -78,13 +78,14 @@ function slotStart(time) {
   return start ? Number(start[1]) * 60 + Number(start[2]) : Number.MAX_SAFE_INTEGER;
 }
 
-function renderSlots(valid, record, eventKind) {
+function renderSlots(valid, record, item) {
   const section = element('div', '', 'reservation-slots');
-  section.append(element('h4', record ? '予約枠（確認時点の記録）' : '予約枠（確認時点）'));
+  section.append(element('h4', record ? '予約枠（記録）' : '予約枠'));
   if (!valid.length) {
     section.append(element('p', '枠ごとの情報は未確認です。'));
     return section;
   }
+  section.append(element('p', '予約枠の最終確認：' + slotConfirmation(item), 'meta slot-confirmation'));
   const list = element('ul', '', 'slot-list');
   const ordered = valid.map(slot => {
     const time = typeof slot.time === 'string' ? slot.time.trim() : '';
@@ -94,7 +95,7 @@ function renderSlots(valid, record, eventKind) {
     return { slot, timing, start: slotStart(normalized) };
   }).sort((a, b) => a.start - b.start);
   for (const { slot, timing } of ordered) {
-    const status = slotBadge(slot.status, eventKind);
+    const status = slotBadge(slot.status, item.kind);
     const highlight = !record && status.variant === 'available' ? ' slot-row--available' : '';
     const row = element('li', '', 'slot-row' + highlight);
     row.append(element('strong', slot.label), element('span', timing, 'slot-time'), element('span', status.label, 'slot-status slot-status--' + (record ? 'record' : status.variant)));
@@ -145,7 +146,7 @@ function eventCard(item, today, past, compact = false) {
   top.append(date);
   if (typeof item.time === 'string' && item.time.trim()) top.append(element('span', item.time.trim(), 'event-time'));
   if (full) top.append(element('span', '満枠', 'badge full-booking'));
-  else if (availableCount) top.append(element('span', '空き' + availableCount + '枠（確認時点）', 'badge availability-count'));
+  else if (availableCount) top.append(element('span', '空き' + availableCount + '枠', 'badge availability-count'));
   card.append(top, element('h3', item.title || '撮影会'));
   const showStatus = state.label || (!availableCount && (compact || !repeatsSlotStatus(item.status || '未確認', slots)));
   if ((!full && showStatus) || state.label === 'キャンセル待ち') {
@@ -154,6 +155,7 @@ function eventCard(item, today, past, compact = false) {
   }
   card.append(element('p', '会場：' + (item.venue || '未確認')));
   if (compact) {
+    if (slots.length) card.append(element('p', '予約枠の最終確認：' + slotConfirmation(item), 'meta slot-confirmation'));
     const open = element('button', '詳細を見る', 'open-details');
     open.type = 'button';
     open.setAttribute('aria-label', (item.title || '撮影会') + 'の詳細を見る');
@@ -168,7 +170,7 @@ function eventCard(item, today, past, compact = false) {
     return card;
   }
   if (state.slotMode !== 'omit' && (slots.length || (!state.cancelled && (!item.kind || item.kind === 'individual_photo')))) {
-    card.append(renderSlots(slots, state.slotMode === 'record', item.kind));
+    card.append(renderSlots(slots, state.slotMode === 'record', item));
   }
   const details = cardDetails(item.details, slots);
   if (details) card.append(element('p', '補足：' + details));
@@ -207,7 +209,7 @@ function eventCard(item, today, past, compact = false) {
   make.addEventListener('click', async () => {
     make.disabled = true;
     try {
-      const { openAnnouncement } = await import('./announcement-ui.mjs?v=slot-label-3');
+      const { openAnnouncement } = await import('./announcement-ui.mjs?v=gallery-1');
       openAnnouncement(item);
     } catch {
       make.textContent = '告知画面を再読み込み';
