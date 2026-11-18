@@ -1,7 +1,7 @@
 import { nextBookingChange } from './reservation.mjs?v=gallery-1';
 import { announcementFacts } from './announcement-facts.mjs?v=gallery-1';
-import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=lettering-1';
-import { openPosterEditor } from './poster-editor.mjs?v=lettering-1';
+import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=pattern-1';
+import { openPosterEditor } from './poster-editor.mjs?v=pattern-1';
 import { posterPhotos } from './poster-photos.mjs';
 
 const dialog = document.querySelector('#announcement');
