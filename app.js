@@ -1,6 +1,6 @@
 import { bookingState, jstTime, nextBookingChange, slotBadge, unavailableSlotsSummary } from './reservation.mjs?v=slot-label-3';
 import { dayParts } from './event-date.mjs';
-import { element, makeCalendar } from './event-calendar.mjs';
+import { element, makeCalendar } from './event-calendar.mjs?v=full-booking-1';
 const events = document.querySelector('#events'), updated = document.querySelector('#updated'), refresh = document.querySelector('#refresh');
 const filters = document.querySelector('#filters');
 const query = document.querySelector('#query');
@@ -27,6 +27,12 @@ function validSlots(slots) {
   return Array.isArray(slots) ? slots.filter(slot =>
     slot && typeof slot.label === 'string' && slot.label.trim()
   ) : [];
+}
+
+function isFullyBooked(item, state = bookingState(item), slots = validSlots(item.slots)) {
+  if (state.inactive || state.pending || state.slotMode === 'omit') return false;
+  if (/^(?:満枠|満席|完売)$/.test(state.label)) return true;
+  return slots.length > 0 && slots.every(slot => slotBadge(slot.status, item.kind).label === '予約済');
 }
 
 function repeatsSlotStatus(status, slots) {
@@ -116,7 +122,7 @@ function show(data) {
   const mode = viewPicker.querySelector('input:checked').value;
   const makeCard = item => eventCard(item, today, past, mode === 'compact');
   if (mode === 'calendar') {
-    events.append(makeCalendar(list, today, makeCard));
+    events.append(makeCalendar(list, today, makeCard, isFullyBooked));
   } else {
     const container = mode === 'compact' ? element('div', '', 'compact-grid') : document.createDocumentFragment();
     for (const item of list) container.append(makeCard(item));
@@ -129,6 +135,7 @@ function eventCard(item, today, past, compact = false) {
   const card = element('article', '', compact ? 'card compact-card' : 'card');
   const state = bookingState(item);
   const slots = state.slotMode === 'omit' ? [] : validSlots(item.slots);
+  const full = isFullyBooked(item, state, slots);
   const availableCount = state.slotMode === 'current' ? slots.filter(slot => slotBadge(slot.status).variant === 'available').length : 0;
   const top = element('div', '', 'card-top');
   const day = dayParts(item.date);
@@ -137,9 +144,11 @@ function eventCard(item, today, past, compact = false) {
   if (isToday) top.append(element('span', '本日', 'badge'));
   top.append(date);
   if (typeof item.time === 'string' && item.time.trim()) top.append(element('span', item.time.trim(), 'event-time'));
-  if (availableCount) top.append(element('span', '空き' + availableCount + '枠（確認時点）', 'badge availability-count'));
+  if (full) top.append(element('span', '満枠', 'badge full-booking'));
+  else if (availableCount) top.append(element('span', '空き' + availableCount + '枠（確認時点）', 'badge availability-count'));
   card.append(top, element('h3', item.title || '撮影会'));
-  if (state.label || !availableCount && (compact || !repeatsSlotStatus(item.status || '未確認', slots))) {
+  const showStatus = state.label || (!availableCount && (compact || !repeatsSlotStatus(item.status || '未確認', slots)));
+  if ((!full && showStatus) || state.label === 'キャンセル待ち') {
     const compactSummary = compact && state.slotMode === 'current' ? unavailableSlotsSummary(slots, item.kind) : '';
     card.append(element('span', compactSummary || state.label || item.status || '予約状況：未確認', 'badge'));
   }
