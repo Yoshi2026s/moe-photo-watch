@@ -1,9 +1,11 @@
-import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=reference-1';
+import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=lettering-1';
+import { letteringOptions } from './poster-lettering.mjs';
 
 const editor = document.querySelector('#poster-editor');
 const preview = editor.querySelector('.poster-edit-preview');
 const palettes = editor.querySelector('.poster-palettes');
 const layout = editor.querySelector('#poster-layout');
+const lettering = editor.querySelector('#poster-lettering');
 const cropControls = editor.querySelector('.poster-crop');
 const ranges = [...cropControls.querySelectorAll('input[type=range]')];
 const fit = cropControls.querySelector('input[name=fit]');
@@ -11,6 +13,7 @@ const defaultCrop = { zoom: 1, x: .5, y: .28, fit: false };
 let source, draft, crop, frame;
 
 for (const [key, name] of Object.entries(posterLayouts)) layout.add(new Option(name, key));
+for (const [key, name] of Object.entries(letteringOptions)) lettering.add(new Option(name,key));
 
 function drawPreview() {
   cancelAnimationFrame(frame);
@@ -23,7 +26,7 @@ function drawPreview() {
 }
 
 function setVariant(palette, left, positioning) {
-  draft = posterVariant(draft.key,palette,left,positioning);
+  draft = { ...posterVariant(draft.key,palette,left,positioning), lettering: lettering.value };
   for (const [index, button] of [...palettes.children].entries()) {
     button.setAttribute('aria-pressed',String(index === draft.palette));
   }
@@ -42,6 +45,7 @@ function reflectCrop() {
 export function openPosterEditor(options) {
   source = options;
   draft = options.design;
+  lettering.value = draft.lettering || '';
   crop = { ...defaultCrop, ...options.crop };
   cropControls.disabled = !options.photo;
   palettes.replaceChildren();
@@ -64,6 +68,7 @@ export function openPosterEditor(options) {
 }
 
 layout.addEventListener('change',() => setVariant(draft.palette,draft.left,layout.value));
+lettering.addEventListener('change',() => setVariant(draft.palette,draft.left,draft.layout));
 editor.querySelector('.flip-poster').addEventListener('click',() => setVariant(draft.palette,!draft.left,draft.layout));
 fit.addEventListener('change',() => {
   crop.fit = fit.checked;
@@ -77,6 +82,7 @@ for (const range of ranges) {
   });
 }
 editor.querySelector('.reset-poster-edit').addEventListener('click',() => {
+  lettering.value = '';
   crop = { ...defaultCrop };
   reflectCrop();
   setVariant(0,false);
