@@ -19,7 +19,9 @@ export function announcementFacts(event, now = Date.now()) {
   if (clean(event.venue)) rows.push(['会場', clean(event.venue)]);
   const time = clean(event.time);
   if (time) rows.push(['開催時間', time]);
-  if (state.label) rows.push(['受付', state.label]);
+  const confirmedLabel = ['空き状況の公表なし','予約受付開始前'].includes(event.status) ? event.status : '';
+  const bookingLabel = state.label || confirmedLabel;
+  if (bookingLabel) rows.push(['受付', bookingLabel]);
   let detailRow;
   for (const part of clean(event.details).split('。').map(s => s.trim()).filter(Boolean)) {
     const match = part.match(/^(料金|参加料金|オプション(?:料金)?|中止条件)[：:](.+)$/);
@@ -42,7 +44,7 @@ export function announcementFacts(event, now = Date.now()) {
     }).sort((a, b) => a.start - b.start);
     const lines = ordered.map(({slot, time}) => [clean(slot.label), time || '時間未確認', slotBadge(slot.status, event.kind).label].join('　'));
     rows.push([state.slotMode === 'record' ? '予約枠（記録）' : '予約枠', ['最終確認：' + slotConfirmation(event), ...lines].join('\n')]);
-  } else if (state.slotMode !== 'omit' && !state.cancelled && (!event.kind || event.kind === 'individual_photo')) {
+  } else if (!confirmedLabel && state.slotMode !== 'omit' && !state.inactive && (!event.kind || event.kind === 'individual_photo')) {
     rows.push(['予約枠', '枠ごとの状況は未確認']);
   }
   let note = '';
@@ -61,7 +63,7 @@ export function announcementFacts(event, now = Date.now()) {
   const source = primaryUrl || organizerUrl || sources.map(s => officialUrl(s?.url)).find(Boolean) || '';
   const dateLabel = date?.label || '開催日未確認';
   const openSlots = slots.filter(slot => slotBadge(slot.status).variant === 'available').length;
-  let banner = state.pending ? '予約受付開始予定' : state.label;
+  let banner = state.pending ? '予約受付開始予定' : bookingLabel;
   if (!banner && openSlots) banner = '空き' + openSlots + '枠';
   if (!banner || banner === '予約受付中') banner = unavailableSlotsSummary(slots, event.kind) || banner;
   const name = title.includes('雪餅羽もえ') ? title : '雪餅羽もえ｜' + title;
@@ -82,6 +84,7 @@ export function announcementSkillPrompt(event, now = Date.now()) {
   return [
     '@create-moe-photo-announcements（雪餅羽もえ 撮影会告知画像）を使って、下記の撮影会の告知画像とSNS投稿文を作成・修正して。',
     '対象イベントの主催者の公式案内を確認し、提供資料がある場合は最新版と照合してください。告知画像には雪餅羽もえ本人の写真を使い、原則として縦長（9:16）で作成してください。投稿文には対象イベントの主催者の公式URLと本人のリットリンクを入れてください。修正依頼の場合は、指定された箇所を更新してください。',
+    '画像を作る直前に主催者の公式表を開き、開催日・出演者・各部の時間と予約状況を照合してください。自動取得できない場合は公式表を手動確認し、掲載時点の空き状況を流用しないでください。画像には参考写真のキャプションや見本の文字を入れず、撮影テーマや必要な開催情報を読みやすく配置してください。',
     !facts.organizerUrl && '主催者の開催ページはサイト掲載情報では未確認です。主催者による対象イベントの案内を確認し、そのURLを投稿文に入れてください。',
     '【撮影会情報（サイト掲載時点の参考）】\n' + facts.text
   ].filter(Boolean).join('\n\n');
