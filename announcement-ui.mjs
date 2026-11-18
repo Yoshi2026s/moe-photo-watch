@@ -1,19 +1,13 @@
-import { jstTime, nextBookingChange } from './reservation.mjs?v=gallery-1';
-import { announcementFacts, announcementSkillPrompt } from './announcement-facts.mjs?v=live-booking-1';
-import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=live-booking-1';
-import { openPosterEditor } from './poster-editor.mjs?v=live-booking-1';
-import { collectOfficialSlots, confirmedEvent, matchPublishedEvent, readSlotLines } from './poster-booking.mjs?v=live-booking-1';
+import { nextBookingChange } from './reservation.mjs?v=gallery-1';
+import { announcementFacts, announcementSkillPrompt } from './announcement-facts.mjs?v=direct-poster-1';
+import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=direct-poster-1';
+import { openPosterEditor } from './poster-editor.mjs?v=direct-poster-1';
 import { posterPhotos } from './poster-photos.mjs';
 
 const dialog = document.querySelector('#announcement');
 const preview = dialog.querySelector('.poster-preview');
-const message = dialog.querySelector('#social-message');
-const feedback = dialog.querySelector('.announce-feedback');
-const bookingState = dialog.querySelector('#booking-state');
-const bookingForm = dialog.querySelector('#booking-check');
-const bookingRetry = dialog.querySelector('#booking-retry');
-const posterContent = dialog.querySelector('.poster-content');
-const slotInput = bookingForm.elements.slots;
+const message = dialog.querySelector('textarea');
+const feedback = dialog.querySelector('[role=status]');
 const shuffle = dialog.querySelector('.shuffle');
 const copy = dialog.querySelector('.copy-message');
 const copySkillPrompt = dialog.querySelector('.copy-skill-prompt');
@@ -38,7 +32,6 @@ let displayedText = '', design, photoChoice, crop;
 let press, saveMenuTimer;
 let copyAttempt = 0;
 let selectedTheme = '', selectedPhoto = '', pickerMode, pickerRequest = 0;
-let selectedEvent, controller, pendingDraw;
 
 themeFilter.add(new Option('すべて',''));
 for (const group of Object.keys(posterThemeGroups)) themeFilter.add(new Option(group,group));
@@ -217,94 +210,8 @@ async function openPicker(mode) {
   }
 }
 
-async function generate(options = {}) {
+async function generate({ newDesign = false, newPhoto = false } = {}) {
   const id = ++request;
-  controller?.abort();
-  controller = new AbortController();
-  const check = controller;
-  pendingDraw = { id, options };
-  displayedText = '';
-  event = selectedEvent;
-  if (promptPreview.open) refreshSkillPrompt();
-  clearPress();
-  preview.replaceChildren();
-  releaseDownload();
-  message.value = '';
-  posterContent.hidden = bookingRetry.hidden = bookingForm.hidden = true;
-  bookingForm.reset();
-  slotInput.required = false;
-  slotInput.setCustomValidity('');
-  slotInput.parentElement.hidden = true;
-  bookingState.textContent = '主催者の最新の予約状況を確認中…';
-  const timeout = setTimeout(() => check.abort(), 10000);
-  try {
-    const response = await fetch('data/events.json', { cache:'no-store', signal:check.signal });
-    if (!response.ok) throw Error();
-    const current = matchPublishedEvent(selectedEvent,(await response.json()).events);
-    if (id !== request) return;
-    event = current;
-    if (promptPreview.open) refreshSkillPrompt();
-    if (Date.now() >= jstTime(current.date + ' 00:00') + 86400000) {
-      finishCheck({ ...current, slots:[] }, '開催日を過ぎたため、予約枠は画像に掲載しません。');
-      return;
-    }
-    const rows = await collectOfficialSlots(current,check.signal).catch(() => null);
-    if (id !== request) return;
-    if (rows) {
-      finishCheck(confirmedEvent(current,'',rows),'主催者の公式表から予約枠を取得しました。');
-      return;
-    }
-    const facts = announcementFacts(current);
-    const url = facts.organizerUrl || facts.source;
-    if (!url) throw Error('公式案内のURLを確認できません。');
-    bookingForm.querySelector('a').href = url;
-    slotInput.value = (current.slots || []).map(s => [s.label,s.time].filter(Boolean).join(' ')).join('\n');
-    bookingState.textContent = '予約表を自動取得できませんでした。' + facts.dateLabel + 'の公式案内で、雪餅羽もえの枠を確認してください。';
-    bookingForm.hidden = bookingRetry.hidden = false;
-  } catch (error) {
-    if (id !== request) return;
-    bookingState.textContent = error.message && !(error instanceof TypeError) && !check.signal.aborted
-      ? error.message : '最新の掲載情報を読み込めませんでした。再取得してください。';
-    bookingRetry.hidden = false;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-function finishCheck(verified, description) {
-  if (!pendingDraw || pendingDraw.id !== request || !dialog.open) return;
-  const { id, options } = pendingDraw;
-  pendingDraw = null;
-  event = verified;
-  bookingState.textContent = description;
-  bookingForm.hidden = true;
-  bookingRetry.hidden = posterContent.hidden = false;
-  scheduleBookingCheck();
-  drawVerified(id,options);
-}
-
-bookingRetry.addEventListener('click', () => generate(pendingDraw?.options));
-bookingForm.elements.mode.addEventListener('change', e => {
-  const hasSlots = e.target.value === 'slots';
-  slotInput.parentElement.hidden = !hasSlots;
-  slotInput.required = hasSlots;
-  slotInput.setCustomValidity('');
-});
-slotInput.addEventListener('input', () => slotInput.setCustomValidity(''));
-bookingForm.addEventListener('submit', e => {
-  e.preventDefault();
-  if (bookingForm.hidden || !pendingDraw) return;
-  const mode = bookingForm.elements.mode.value;
-  const rows = mode === 'slots' ? readSlotLines(slotInput.value) : [];
-  if (!rows) {
-    slotInput.setCustomValidity('部番号、時間、公式の状況を各行に入力してください。同じ部番号は1回だけ入力できます。');
-    slotInput.reportValidity();
-    return;
-  }
-  finishCheck(confirmedEvent(event,mode === 'slots' ? '' : mode,rows),'公式案内で手動確認した予約状況を反映しました。');
-});
-
-async function drawVerified(id, { newDesign = false, newPhoto = false }) {
   const facts = announcementFacts(event);
   const key = [event.date,event.title,event.url].join('|');
   if (newDesign) design = nextDesign(facts,lastDesign.get(key),selectedTheme);
@@ -357,7 +264,7 @@ async function drawVerified(id, { newDesign = false, newPhoto = false }) {
 }
 
 export function openAnnouncement(item) {
-  selectedEvent = event = item;
+  event = item;
   copyAttempt++;
   copySkillPrompt.disabled = false;
   promptPreview.open = false;
@@ -400,11 +307,8 @@ picker.addEventListener('close',() => {
 format.addEventListener('change',() => generate());
 dialog.querySelector('.close-dialog').addEventListener('click',() => dialog.close());
 dialog.addEventListener('close',() => {
-  if (dialog.open) return;
   clearPress();
   request++;
-  controller?.abort();
-  pendingDraw = null;
   photoChoice = null;
   uploaded = null;
   preview.replaceChildren();
@@ -412,7 +316,7 @@ dialog.addEventListener('close',() => {
 });
 function refreshBooking() {
   if (!dialog.open) return;
-  if (displayedText && displayedText !== announcementFacts(event).text) generate();
+  if (displayedText !== announcementFacts(event).text) generate();
   scheduleBookingCheck();
 }
 let timeCheck;
