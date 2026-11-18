@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026/11/18 10:02",
+  "updated_at": "2026/11/18 11:34",
   "events": [
     {
       "date": "2026/11/15",
@@ -343,14 +343,49 @@
     {
       "date": "2026/11/20",
       "title": "Smooth 雪餅羽もえ 個人撮影会（東京ドーム）",
-      "venue": "東京ドーム",
+      "venue": "水道橋エリア",
       "kind": "individual_photo",
-      "status": "予約状況：未確認",
-      "details": "",
-      "checked_at": "2026/11/18 01:27",
-      "url": "https://x.com/moe_moechan121/status/2118377177360261410",
-      "slots": [],
+      "status": "",
+      "details": "料金：各部の撮影費10,000円＋参加費500円。オプション：動画撮影5,000円／部、チェキ2,000円／枚。",
+      "checked_at": "2026/11/18 11:34",
+      "url": "https://www.smooth-tokyo.jp/schedule/detail/2026-11-20_2.html",
+      "slots": [
+        {
+          "label": "第1部",
+          "time": "14:00〜15:00",
+          "status": "空き"
+        },
+        {
+          "label": "第2部",
+          "time": "15:15〜16:15",
+          "status": "空き"
+        },
+        {
+          "label": "第3部",
+          "time": "16:30〜17:30",
+          "status": "予約不可"
+        },
+        {
+          "label": "第4部",
+          "time": "18:00〜19:00",
+          "status": "予約不可"
+        },
+        {
+          "label": "第5部",
+          "time": "19:15〜20:15",
+          "status": "予約不可"
+        },
+        {
+          "label": "第6部",
+          "time": "20:30〜21:30",
+          "status": "予約不可"
+        }
+      ],
       "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://www.smooth-tokyo.jp/schedule/detail/2026-11-20_2.html"
+        },
         {
           "kind": "official_post",
           "url": "https://x.com/moe_moechan121/status/2118377177360261410"
@@ -360,14 +395,39 @@
     {
       "date": "2026/11/22",
       "title": "Smooth 雪餅羽もえ 個人撮影会（ドレス）",
-      "venue": "未確認",
+      "venue": "Gallery-O17 MADEMOISELLE",
       "kind": "individual_photo",
-      "status": "予約状況：未確認",
-      "details": "",
-      "checked_at": "2026/11/18 01:27",
-      "url": "https://x.com/moe_moechan121/status/2118377177360261410",
-      "slots": [],
+      "status": "",
+      "details": "料金：各部の撮影費10,000円＋参加費2,000円。オプション：衣装5,000円／部、動画撮影5,000円／部、チェキ2,000円／枚。",
+      "checked_at": "2026/11/18 11:34",
+      "url": "https://www.smooth-tokyo.jp/schedule/detail/2026-11-22_6.html",
+      "slots": [
+        {
+          "label": "第3部",
+          "time": "12:25〜13:15",
+          "status": "空き"
+        },
+        {
+          "label": "第4部",
+          "time": "13:55〜14:45",
+          "status": "空き"
+        },
+        {
+          "label": "第5部",
+          "time": "15:00〜15:50",
+          "status": "空き"
+        },
+        {
+          "label": "第6部",
+          "time": "16:05〜16:55",
+          "status": "予約不可"
+        }
+      ],
       "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://www.smooth-tokyo.jp/schedule/detail/2026-11-22_6.html"
+        },
         {
           "kind": "official_post",
           "url": "https://x.com/moe_moechan121/status/2118377177360261410"
@@ -376,15 +436,19 @@
     },
     {
       "date": "2026/11/23",
-      "title": "グラドルあおてんじょ〜!!",
-      "venue": "未確認",
+      "title": "グラドルあおてんじょ〜!! vol.16 トークショー＆撮影会",
+      "venue": "ソフマップAKIBA アミューズメント館 8F",
       "kind": "event",
       "status": "予約状況：未確認",
       "details": "",
-      "checked_at": "2026/11/18 01:27",
+      "checked_at": "2026/11/18 11:34",
       "url": "https://x.com/moe_moechan121/status/2118377177360261410",
       "slots": [],
       "sources": [
+        {
+          "kind": "official_page",
+          "url": "https://a.sofmap.com/contents/?id=event&sid=schedule"
+        },
         {
           "kind": "official_post",
           "url": "https://x.com/moe_moechan121/status/2118377177360261410"
