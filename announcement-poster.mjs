@@ -1,4 +1,5 @@
 import { drawReferenceDecor, referencePosterThemes } from './poster-reference-themes.mjs?v=reference-1';
+import { drawLettering, posterLettering, ribbonColors } from './poster-lettering.mjs';
 
 export const posterThemes = {
   glamour: { label: 'ゴールドグラビア', frame: 'deco', wide: true, palettes: [
@@ -325,12 +326,13 @@ function measureDetails(ctx, rows, size, columns) {
   const labelStep = Math.ceil(labelSize*1.25);
   const textStep = Math.ceil(size*1.35);
   const measured = rows.map(([label,value]) => {
+    const emphasized = /料金|オプション/.test(label);
     ctx.font = '700 ' + labelSize + 'px ' + sans;
     const labels = lines(ctx,label,width-18);
-    ctx.font = '600 ' + size + 'px ' + sans;
+    ctx.font = (emphasized ? '700 ' : '600 ') + size + 'px ' + sans;
     const values = lines(ctx,value,width-18);
     const height = labels.length*labelStep + values.length*textStep + Math.round(size*.6);
-    return { labels, values, height };
+    return { labels, values, height, emphasized };
   });
   const total = measured.reduce((height,row) => height+row.height,0);
   let split = measured.length, height = total;
@@ -348,7 +350,7 @@ function measureDetails(ctx, rows, size, columns) {
   return { groups: [measured.slice(0,split),measured.slice(split)], height, width, gap, size, labelSize, labelStep, textStep };
 }
 
-function drawDetails(ctx, rows, design, top, bottom, story) {
+function drawDetails(ctx, rows, design, lettering, top, bottom, story) {
   if (!rows.length) return;
   const available = bottom-top;
   const [,ink,accent] = design.colors;
@@ -369,7 +371,7 @@ function drawDetails(ctx, rows, design, top, bottom, story) {
   ctx.translate(W*(1-fit)/2,top);
   ctx.scale(fit,fit);
   if (design.scene) {
-    ctx.fillStyle = design.scene === 'winter' ? '#f4faff' : '#fff6e8';
+    ctx.fillStyle = lettering.body;
     ctx.strokeStyle = accent;
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -381,25 +383,32 @@ function drawDetails(ctx, rows, design, top, bottom, story) {
   for (const [index, group] of layout.groups.entries()) {
     const x = 62 + index*(layout.width+layout.gap);
     let y = 0;
-    for (const { labels, values, height } of group) {
+    for (const { labels, values, height, emphasized } of group) {
       let baseline = y + layout.labelSize;
       ctx.fillStyle = accent;
       ctx.fillRect(x,y+3,5,layout.labelSize);
-      ctx.fillStyle = textColor;
       ctx.font = '700 ' + layout.labelSize + 'px ' + sans;
+      const labelLift = layout.labelSize*.9;
+      const chipWidth = Math.max(...labels.map(label => ctx.measureText(label).width)) + 16;
+      ctx.fillStyle = lettering.chip;
+      ctx.beginPath();
+      ctx.roundRect(x+11,baseline-labelLift,chipWidth,layout.labelStep*labels.length,Math.min(layout.labelSize*.36,9));
+      ctx.fill();
+      ctx.fillStyle = lettering.labelInk;
       for (const label of labels) {
         ctx.fillText(label,x+18,baseline);
         baseline += layout.labelStep;
       }
       baseline += layout.size-layout.labelSize;
-      ctx.font = '600 ' + layout.size + 'px ' + sans;
+      ctx.font = (emphasized ? '700 ' : '600 ') + layout.size + 'px ' + sans;
       for (const value of values) {
-        ctx.fillStyle = textColor;
-        if (design.scene && labels[0].startsWith('予約枠') && /^第[0-9]+部/.test(value)) {
+        ctx.fillStyle = emphasized ? lettering.emphasis : textColor;
+        if (labels[0].startsWith('予約枠') && /^第[0-9]+部/.test(value)) {
           const open = /(?:空き|予約受付中)$/.test(value);
-          ctx.fillStyle = open ? '#e3f0e3' : '#f1e3e3';
+          const darkTable = lettering.dark && !design.scene;
+          ctx.fillStyle = darkTable ? (open ? '#235547' : '#433447') : (open ? '#e3f0e3' : '#f1e3e3');
           ctx.fillRect(x+11,baseline-layout.size+2,layout.width-12,layout.textStep-2);
-          ctx.fillStyle = open ? '#27634a' : '#6a4555';
+          ctx.fillStyle = darkTable ? '#fff8ed' : (open ? '#215c44' : '#654050');
         }
         ctx.fillText(value,x+18,baseline);
         baseline += layout.textStep;
@@ -420,15 +429,16 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   const time = facts.rows.find(([label]) => label === '開催時間')?.[1] || '';
   const heroTime = time && [...time].length <= 18;
   const [,ink,accent] = design.colors;
-  const headingFont = design.bold ? sans : serif;
+  const lettering = posterLettering(design);
+  const headingFont = lettering.bold || design.bold ? sans : serif;
   const canvas = document.createElement('canvas');
   canvas.width = W*previewScale;
   canvas.height = H*previewScale;
   const ctx = canvas.getContext('2d');
   ctx.scale(previewScale,previewScale);
   backdrop(ctx,H,design);
-  ctx.font = '700 56px ' + headingFont;
-  ctx.fillText('雪餅羽もえ',62,100);
+  ctx.font = '800 56px ' + headingFont;
+  drawLettering(ctx,'雪餅羽もえ',62,100,56,lettering,{ gleam: true });
   ctx.textAlign = 'right';
   ctx.font = design.scene ? '700 27px ' + sans : '24px Georgia,serif';
   ctx.fillText(design.scene ? facts.dateLabel : 'N O W A N   M O E',W-62,93);
@@ -445,7 +455,7 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   let titleLines;
   const titleGroups = facts.title.split(/\s*(?=[「（])/u);
   do {
-    ctx.font = '700 ' + size + 'px ' + headingFont;
+    ctx.font = '800 ' + size + 'px ' + headingFont;
     titleLines = titleGroups.flatMap(group => lines(ctx,group.trim(),950));
     if (titleLines.length <= 2 || size <= 38) break;
     size -= 4;
@@ -493,9 +503,9 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   ctx.translate(W*(1-heroFit)/2,ruleY*(1-heroFit));
   ctx.scale(heroFit,heroFit);
   ctx.fillStyle = ink;
-  ctx.font = '700 ' + size + 'px ' + headingFont;
+  ctx.font = '800 ' + size + 'px ' + headingFont;
   if (stacked) ctx.textAlign = 'center';
-  heading.forEach((line,index) => ctx.fillText(line,stacked ? W/2 : 62,titleY+index*(size+12)));
+  heading.forEach((line,index) => drawLettering(ctx,line,stacked ? W/2 : 62,titleY+index*(size+12),size,lettering));
   ctx.textAlign = 'left';
   portrait(ctx,photo,px,top,pw,ph,design,crop);
   if (photo) {
@@ -508,8 +518,9 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   ctx.font = '600 32px ' + sans;
   if (facts.day) {
     ctx.fillText(facts.day.year + '年　' + facts.day.weekday + '曜日',tx,infoTop+45);
-    ctx.font = 'bold ' + (story ? 106 : 80) + 'px Georgia,serif';
-    ctx.fillText(facts.day.month + '.' + String(facts.day.day).padStart(2,'0'),tx,infoTop+(story ? 165 : 133));
+    const dateSize = story ? 106 : 80;
+    ctx.font = '800 ' + dateSize + 'px ' + (lettering.bold ? sans : 'Georgia,serif');
+    drawLettering(ctx,facts.day.month + '.' + String(facts.day.day).padStart(2,'0'),tx,infoTop+(story ? 165 : 133),dateSize,lettering);
   } else {
     ctx.fillText(facts.dateLabel,tx,infoTop+107);
   }
@@ -520,7 +531,11 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
     ctx.fillText(time,tx,infoTop+(story ? 274 : 217),tw);
   }
   if (bannerLines.length) {
-    ctx.fillStyle = design.scene ? '#842b49' : ink;
+    const [ribbonTop,ribbonBottom] = ribbonColors(bannerText,lettering);
+    const ribbon = ctx.createLinearGradient(bandX,bandY,bandX,bandY+bandHeight);
+    ribbon.addColorStop(0,ribbonTop);
+    ribbon.addColorStop(1,ribbonBottom);
+    ctx.fillStyle = ribbon;
     ctx.beginPath();
     ctx.moveTo(bandX,bandY);
     ctx.lineTo(bandX+bandWidth,bandY);
@@ -530,15 +545,18 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
     ctx.lineTo(bandX+11,bandY+bandHeight/2);
     ctx.closePath();
     ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = lettering.key === 'gold' ? '#e7b96a' : '#fff5df75';
+    ctx.stroke();
     ctx.font = bandFont;
-    ctx.fillStyle = design.scene ? '#fff4e8' : design.colors[0];
     ctx.textAlign = 'center';
-    bannerLines.forEach((line,index) => ctx.fillText(line,bandX+bandWidth/2,bandY+(index+1)*bandLineHeight-1));
+    bannerLines.forEach((line,index) => drawLettering(ctx,line,bandX+bandWidth/2,
+      bandY+(index+1)*bandLineHeight-1,story ? 38 : 32,lettering,{ ribbon: true }));
   }
   ctx.restore();
 
   const detailTop = ruleY + (heroBottom-ruleY)*heroFit;
-  drawDetails(ctx,details,design,detailTop,detailBottom,story);
+  drawDetails(ctx,details,design,lettering,detailTop,detailBottom,story);
 
   ctx.fillStyle = ink;
   ctx.fillRect(0,H-92,W,92);
