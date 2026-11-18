@@ -1,8 +1,11 @@
 import { drawReferenceDecor, referencePosterThemes } from './poster-reference-themes.mjs?v=reference-1';
-import { drawLettering, posterLettering, ribbonColors } from './poster-lettering.mjs';
+import { drawLettering, posterLettering, ribbonColors } from './poster-lettering.mjs?v=poster-density-1';
 import { drawPosterPattern, posterPatternKey } from './poster-patterns.mjs';
 
 export const posterThemes = {
+  invitation: { label: '花束の招待状', frame: 'round', layout: 'feature', scene: 'blossom', palettes: [
+    ['#fff6f2','#66364a','#ba697b'], ['#f0f5ec','#324f43','#799679'], ['#f7f0fb','#573d67','#ae88ae']
+  ] },
   glamour: { label: 'ゴールドグラビア', frame: 'deco', wide: true, palettes: [
     ['#201320','#fff7e4','#e9bc66'], ['#291528','#fff5f3','#f7bbbe'], ['#101f2e','#f7f3e6','#dbc488']
   ] },
@@ -68,7 +71,7 @@ export const posterThemes = {
 
 export const posterThemeGroups = {
   '華やか': ['glamour','editorial','pearl','noir','artdeco'],
-  'かわいい': ['cute','floral','heart','candy','doll'],
+  'かわいい': ['cute','floral','heart','candy','doll','invitation'],
   'POP': ['pop','comic','neon','soda','print'],
   '季節・レトロ': ['retro','natural','night','coastal','paper'],
   '保存した見本': Object.keys(referencePosterThemes)
@@ -87,8 +90,8 @@ const seasons = [
   ['pop','natural','editorial','soda','coastal','retroDiner','coralStars'],
   ['retro','glamour','editorial','paper','artdeco','mapleGold','pressedAutumn','pinkMaple']
 ];
-const serif = '"Yu Mincho","Hiragino Mincho ProN",serif';
-const sans = '"Yu Gothic","Hiragino Sans","Meiryo",sans-serif';
+const serif = '"Yu Mincho","Hiragino Mincho ProN","Noto Serif CJK JP",serif';
+const sans = '"Yu Gothic","Hiragino Sans","Meiryo","Noto Sans CJK JP",sans-serif';
 const W = 1080;
 
 export function posterVariant(key, palette = 0, left = false, layout) {
@@ -172,9 +175,11 @@ function lines(ctx, value, width) {
   const result = [];
   for (const para of value.split('\n')) {
     let line = '';
-    for (const char of para) {
-      if (line && ctx.measureText(line + char).width > width) {
-        if (/^[、。）」』】！？，．]/.test(char) || /[「『（【]$/.test(line)) {
+    const words = para.match(/(?:（税込）|[A-Za-z0-9]+(?:[.,:：/〜～-][A-Za-z0-9]+)*[円年月日時分部枠]?)[、。]?|./gu) || [];
+    const tokens = words.flatMap(word => word.length > 1 && ctx.measureText(word).width > width ? [...word] : [word]);
+    for (const token of tokens) {
+      if (line && ctx.measureText(line + token).width > width) {
+        if (/^[、。）」』】！？，．]/.test(token) || /[「『（【]$/.test(line)) {
           const chars = Array.from(line);
           line = chars.pop();
           if (chars.length) result.push(chars.join(''));
@@ -183,7 +188,7 @@ function lines(ctx, value, width) {
           line = '';
         }
       }
-      line += char;
+      line += token;
     }
     result.push(line);
   }
@@ -307,8 +312,8 @@ function drawDetails(ctx, rows, design, lettering, top, bottom, story) {
   const available = bottom-top;
   const [,ink,accent] = design.colors;
   let layout;
-  const preferred = story ? 39 : 34;
-  for (const size of [preferred,30,26,22,18]) {
+  const preferred = (story ? 48 : 39) + (design.typeSize === 'large' ? 8 : 0);
+  for (const size of [preferred,story ? 39 : 34,30,26,22,18]) {
     const single = measureDetails(ctx,rows,size,1);
     if (single.height <= available) {
       layout = single;
@@ -319,13 +324,15 @@ function drawDetails(ctx, rows, design, lettering, top, bottom, story) {
     if (layout.height <= available) break;
   }
   const fit = Math.min(1,available/layout.height);
+  const rowGap = Math.min(layout.size*.55, (available/fit-layout.height)/Math.max(1,...layout.groups.map(group => group.length)));
+  const panelHeight = Math.max(...layout.groups.map(group => group.reduce((sum,row) => sum+row.height+rowGap,0)));
   ctx.save();
   ctx.translate(W*(1-fit)/2,top);
   ctx.scale(fit,fit);
   if (design.scene || posterPatternKey(design) !== 'none') {
     ctx.fillStyle = design.scene ? lettering.body : lettering.body+'dc';
     ctx.beginPath();
-    ctx.roundRect(46,-9,W-92,layout.height+18,18);
+    ctx.roundRect(46,-9,W-92,panelHeight+18,18);
     ctx.fill();
     if (design.scene) {
       ctx.strokeStyle = accent;
@@ -367,10 +374,41 @@ function drawDetails(ctx, rows, design, lettering, top, bottom, story) {
         ctx.fillText(value,x+18,baseline);
         baseline += layout.textStep;
       }
-      y += height;
+      y += height + rowGap;
     }
   }
   ctx.restore();
+}
+
+function drawAnnouncementMessage(ctx, message, top, design) {
+  const { size, font, textLines, height } = message;
+  const [paper,ink,accent] = design.colors;
+  ctx.save();
+  ctx.translate(0,top);
+  ctx.fillStyle = paper;
+  ctx.beginPath();
+  ctx.roundRect(48,0,W-96,height,design.frame === 'round' ? 30 : 4);
+  ctx.fill();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  for (const y of [8,height-8]) { ctx.moveTo(72,y); ctx.lineTo(W-72,y); }
+  ctx.stroke();
+  motif(ctx,88,height/2,18,design.key,accent);
+  motif(ctx,W-88,height/2,18,design.key,accent);
+  ctx.textAlign = 'center';
+  ctx.font = font;
+  ctx.fillStyle = ink;
+  textLines.forEach((line,i) => ctx.fillText(line,W/2,25+size+i*Math.ceil(size*1.3)));
+  ctx.restore();
+}
+
+function participationMessage(facts) {
+  if (!facts.note) return '';
+  if (facts.banner === '予約不要') return '事前予約なしで参加できます。';
+  if (facts.banner === '予約受付開始予定') return '参加の前に、予約開始日時をチェック。';
+  if (facts.banner === '掲載枠はすべて予約済' || facts.banner === '掲載枠に空きなし') return '各部の最新の受付状況は、主催者の案内をご覧ください。';
+  return facts.note;
 }
 
 export function renderPoster(facts, design, photo, format = 'story', { previewScale = 1, crop } = {}) {
@@ -384,7 +422,7 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   const heroTime = time && [...time].length <= 18;
   const [,ink,accent] = design.colors;
   const lettering = posterLettering(design);
-  const headingFont = lettering.bold || design.bold ? sans : serif;
+  const headingFont = design.typeface === 'serif' ? serif : design.typeface === 'sans' || lettering.bold || design.bold ? sans : serif;
   const canvas = document.createElement('canvas');
   canvas.width = W*previewScale;
   canvas.height = H*previewScale;
@@ -405,7 +443,7 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   ctx.lineTo(W-62,ruleY);
   ctx.stroke();
 
-  let size = story ? 68 : 54;
+  let size = (story ? 74 : 58) + (design.typeSize === 'large' ? 10 : 0);
   let titleLines;
   const titleGroups = facts.title.split(/\s*(?=[「（])/u);
   do {
@@ -418,39 +456,68 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   const heading = extended ? ['出演のご案内'] : titleLines;
   const titleY = ruleY + size + 28;
   const top = titleY + heading.length*(size+12) - size + 24;
-  const pw = banner ? 930 : stacked ? (story ? 588 : 530) : story ? (wide ? 505 : 414) : (wide ? 425 : 340);
+  const opening = facts.rows.find(([label,value]) => label === '受付' && value.startsWith('予約受付開始　'))?.[1];
+  const bannerText = (design.scene && opening) || facts.banner;
+  let details = facts.rows.filter(([label,value]) =>
+    !(label === '受付' && value === bannerText) && !(label === '開催時間' && heroTime));
+  if (extended) details.unshift(['イベント名',facts.title]);
+  const detailBottom = H-116;
+  const highlight = details.find(([label]) => label === '撮影会について');
+  const messageText = highlight?.[1] || participationMessage(facts);
+  const messageSize = (story ? 43 : 35) + (design.typeSize === 'large' ? 4 : 0);
+  const messageFont = '700 ' + messageSize + 'px ' + headingFont;
+  ctx.font = messageFont;
+  const textLines = messageText ? lines(ctx,messageText,W-252) : [];
+  const messageHeight = 50 + textLines.length*Math.ceil(messageSize*1.3);
+  const otherRows = highlight ? details.filter(row => row !== highlight) : details;
+  const minBody = Math.min(measureDetails(ctx,otherRows,30,1).height,measureDetails(ctx,otherRows,30,2).height);
+  const showMessage = textLines.length > 0 && textLines.length <= 3 && detailBottom-H*.52-minBody >= messageHeight+56;
+  if (showMessage) details = otherRows;
+  const messageSpace = showMessage ? messageHeight+44 : 0;
+  const bodyBottom = detailBottom-messageSpace;
+  const normalBody = measureDetails(ctx,details,story ? 46 : 36,1).height;
   const height = banner ? (story ? 442 : 265) : stacked ? (story ? 515 : 310) : story ? (wide ? 610 : 545) : (wide ? 320 : 275);
-  const ph = square ? Math.min(height,225) : height;
+  const baseHeight = square ? Math.min(height,225) : height;
+  const infoSpace = (stacked ? 245 : 90) + ((stacked || design.scene) && bannerText ? 100 : 0);
+  const surplus = Math.max(0,bodyBottom-top-baseHeight-infoSpace-normalBody);
+  const growth = photo ? Math.min(story ? 450 : 175,surplus*.86) : 0;
+  const baseWidth = stacked ? (story ? 645 : 530) : story ? (wide ? 505 : 414) : (wide ? 425 : 340);
+  const pw = banner ? 930 : Math.min(stacked ? 898 : 545,baseWidth + growth*(stacked ? .8 : .34));
+  const ph = baseHeight + growth;
   const px = stacked ? (W-pw)/2 : design.left ? 68 : W-68-pw;
   const tx = stacked ? (design.left ? 62 : W/2+24) : design.left ? px+pw+56 : 62;
   const tw = stacked ? W/2-86 : W-pw-192;
   const infoTop = stacked ? top+ph+(photo ? 55 : 27) : top;
-  const opening = facts.rows.find(([label,value]) => label === '受付' && value.startsWith('予約受付開始　'))?.[1];
-  const bannerText = (design.scene && opening) || facts.banner;
   const bandFont = '700 ' + (story ? 38 : 32) + 'px ' + sans;
   ctx.font = bandFont;
-  const bandWidth = design.scene ? W-126 : tw;
+  const fullBand = stacked || design.scene;
+  const bandWidth = fullBand ? W-126 : tw;
   const bannerLines = bannerText ? lines(ctx,bannerText,bandWidth-40) : [];
   const bandLineHeight = story ? 52 : 43;
-  const bandX = design.scene ? 63 : stacked ? W-tx-tw : tx;
+  const bandX = fullBand ? 63 : tx;
   const infoBottom = Math.max(top+ph+(photo ? 87 : 68),
-    infoTop+(heroTime ? (story ? 305 : 249) : 190));
-  const bandY = design.scene ? infoBottom : infoTop + (stacked ? 82 : story ? 325 : heroTime ? 239 : 172);
+    infoTop+(!stacked && heroTime ? (story ? 305 : 249) : story ? 196 : 160));
+  const bandY = fullBand ? infoBottom : infoTop + (heroTime ? (story ? 325 : 239) : story ? 205 : 172);
   const bandHeight = bannerLines.length*bandLineHeight + 18;
   const heroBottom = Math.max(
     top+ph+(photo ? 97 : 72),
-    stacked ? infoTop+(heroTime ? (story ? 340 : 279) : 228) : 0,
-    bannerLines.length ? bandY+bandHeight+(design.scene ? 31 : 70) : 0
+    stacked ? infoBottom+22 : 0,
+    bannerLines.length ? bandY+bandHeight+(fullBand ? 34 : 60) : 0
   );
-  const details = facts.rows.filter(([label,value]) =>
-    !(label === '受付' && value === bannerText) && !(label === '開催時間' && heroTime));
-  if (extended) details.unshift(['イベント名',facts.title]);
-  const detailBottom = H-110;
+  const venue = details.find(([label]) => label === '会場');
+  const venueY = fullBand || !bannerLines.length ? infoTop+(heroTime ? (story ? 329 : 263) : 207) : bandY+bandHeight+45;
+  const venueSize = (story ? 42 : 33) + (design.typeSize === 'large' ? 4 : 0);
+  const venueStep = Math.ceil(venueSize*1.3);
+  const venueFont = '700 ' + venueSize + 'px ' + sans;
+  ctx.font = venueFont;
+  const venueLines = !stacked && venue && details.length > 1 ? lines(ctx,venue[1],tw-12) : [];
+  const showVenue = venueLines.length > 0 && venueY+43+venueStep*venueLines.length <= top+ph;
+  if (showVenue) details = details.filter(row => row !== venue);
   const idealDetails = Math.min(
     measureDetails(ctx,details,30,1).height,
     measureDetails(ctx,details,30,2).height
   );
-  const heroLimit = Math.max(H*.51,detailBottom-idealDetails);
+  const heroLimit = Math.max(H*.51,bodyBottom-idealDetails);
   const heroFit = Math.min(1,(heroLimit-ruleY)/(heroBottom-ruleY));
 
   ctx.save();
@@ -467,22 +534,35 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
     ctx.fillStyle = ink;
     ctx.fillText('参考写真',px,top+ph+39);
   }
-  motif(ctx,tx+tw-28,infoTop+32,26,design.key,accent);
+  motif(ctx,stacked ? (heroTime ? W/2 : W/2+185) : tx+tw-28,infoTop+32,22,design.key,accent);
   ctx.fillStyle = ink;
   ctx.font = '600 32px ' + sans;
+  const dateX = stacked && !heroTime ? W/2 : tx;
+  if (stacked && !heroTime) ctx.textAlign = 'center';
   if (facts.day) {
-    ctx.fillText(facts.day.year + '年　' + facts.day.weekday + '曜日',tx,infoTop+45);
+    ctx.fillText(facts.day.year + '年　' + facts.day.weekday + '曜日',dateX,infoTop+45);
     const dateSize = story ? 106 : 80;
     ctx.font = '800 ' + dateSize + 'px ' + (lettering.bold ? sans : 'Georgia,serif');
-    drawLettering(ctx,facts.day.month + '.' + String(facts.day.day).padStart(2,'0'),tx,infoTop+(story ? 165 : 133),dateSize,lettering);
+    drawLettering(ctx,facts.day.month + '.' + String(facts.day.day).padStart(2,'0'),dateX,infoTop+(story ? 165 : 133),dateSize,lettering);
   } else {
-    ctx.fillText(facts.dateLabel,tx,infoTop+107);
+    ctx.fillText(facts.dateLabel,dateX,infoTop+107);
   }
   if (heroTime) {
     ctx.font = '600 25px ' + sans;
-    ctx.fillText('開催時間',tx,infoTop+(story ? 219 : 175));
+    const timeX = stacked ? W-tx-tw : tx;
+    ctx.fillText('開催時間',timeX,infoTop+(stacked ? 45 : story ? 219 : 175));
     ctx.font = '700 ' + (story ? 41 : 32) + 'px ' + sans;
-    ctx.fillText(time,tx,infoTop+(story ? 274 : 217),tw);
+    ctx.fillText(time,timeX,infoTop+(stacked ? (story ? 137 : 108) : story ? 274 : 217),tw);
+  }
+  if (showVenue) {
+    ctx.fillStyle = ink;
+    ctx.font = '700 28px ' + sans;
+    ctx.fillText('会場',tx,venueY+28);
+    ctx.fillStyle = accent;
+    ctx.fillRect(tx+73,venueY+16,tw-85,2);
+    ctx.fillStyle = ink;
+    ctx.font = venueFont;
+    venueLines.forEach((line,i) => ctx.fillText(line,tx,venueY+40+venueSize+i*venueStep));
   }
   if (bannerLines.length) {
     const [ribbonTop,ribbonBottom] = ribbonColors(bannerText,lettering);
@@ -510,13 +590,16 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   ctx.restore();
 
   const detailTop = ruleY + (heroBottom-ruleY)*heroFit;
-  drawDetails(ctx,details,design,lettering,detailTop,detailBottom,story);
+  drawDetails(ctx,details,design,lettering,detailTop,bodyBottom,story);
+  if (showMessage) drawAnnouncementMessage(ctx,{ size:messageSize, font:messageFont, textLines, height:messageHeight },
+    detailBottom-messageHeight,design);
 
   ctx.fillStyle = ink;
   ctx.fillRect(0,H-92,W,92);
   ctx.fillStyle = design.colors[0];
   ctx.font = '27px ' + sans;
-  if (facts.note) ctx.fillText(facts.note,58,H-55,W-116);
-  ctx.fillText(facts.checked ? '情報確認　' + facts.checked + '（日本時間）' : '最新情報は公式案内へ',58,H-19);
+  const footerNote = showMessage && messageText === facts.note ? '' : facts.note;
+  if (footerNote) ctx.fillText(footerNote,58,H-55,W-116);
+  ctx.fillText(facts.checked ? '情報確認　' + facts.checked + '（日本時間）' : '最新情報は公式案内へ',58,H-(footerNote ? 19 : 36));
   return canvas;
 }

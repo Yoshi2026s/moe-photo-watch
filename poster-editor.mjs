@@ -1,5 +1,5 @@
-import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=pattern-1';
-import { letteringOptions } from './poster-lettering.mjs';
+import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=poster-density-1';
+import { letteringOptions } from './poster-lettering.mjs?v=poster-density-1';
 import { backgroundPatterns } from './poster-patterns.mjs';
 
 const editor = document.querySelector('#poster-editor');
@@ -7,6 +7,8 @@ const preview = editor.querySelector('.poster-edit-preview');
 const palettes = editor.querySelector('.poster-palettes');
 const layout = editor.querySelector('#poster-layout');
 const lettering = editor.querySelector('#poster-lettering');
+const typeface = editor.querySelector('#poster-typeface');
+const typeSize = editor.querySelector('#poster-type-size');
 const pattern = editor.querySelector('#poster-pattern');
 const cropControls = editor.querySelector('.poster-crop');
 const ranges = [...cropControls.querySelectorAll('input[type=range]')];
@@ -29,7 +31,8 @@ function drawPreview() {
 }
 
 function setVariant(palette, left, positioning) {
-  draft = { ...posterVariant(draft.key,palette,left,positioning), lettering: lettering.value, backgroundPattern: pattern.value };
+  draft = { ...posterVariant(draft.key,palette,left,positioning), lettering: lettering.value,
+    typeface: typeface.value, typeSize: typeSize.value, backgroundPattern: pattern.value };
   for (const [index, button] of [...palettes.children].entries()) {
     button.setAttribute('aria-pressed',String(index === draft.palette));
   }
@@ -49,6 +52,8 @@ export function openPosterEditor(options) {
   source = options;
   draft = options.design;
   lettering.value = draft.lettering || '';
+  typeface.value = draft.typeface || '';
+  typeSize.value = draft.typeSize || '';
   pattern.value = draft.backgroundPattern || '';
   crop = { ...defaultCrop, ...options.crop };
   cropControls.disabled = !options.photo;
@@ -72,8 +77,9 @@ export function openPosterEditor(options) {
 }
 
 layout.addEventListener('change',() => setVariant(draft.palette,draft.left,layout.value));
-lettering.addEventListener('change',() => setVariant(draft.palette,draft.left,draft.layout));
-pattern.addEventListener('change',() => setVariant(draft.palette,draft.left,draft.layout));
+for (const control of [lettering,typeface,typeSize,pattern]) {
+  control.addEventListener('change',() => setVariant(draft.palette,draft.left,draft.layout));
+}
 editor.querySelector('.flip-poster').addEventListener('click',() => setVariant(draft.palette,!draft.left,draft.layout));
 fit.addEventListener('change',() => {
   crop.fit = fit.checked;
@@ -88,6 +94,8 @@ for (const range of ranges) {
 }
 editor.querySelector('.reset-poster-edit').addEventListener('click',() => {
   lettering.value = '';
+  typeface.value = '';
+  typeSize.value = '';
   pattern.value = '';
   crop = { ...defaultCrop };
   reflectCrop();
