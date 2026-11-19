@@ -2,7 +2,7 @@ import { nextBookingChange } from './reservation.mjs?v=gallery-1';
 import { announcementFacts, announcementSkillPrompt } from './announcement-facts.mjs?v=manual-photos-1';
 import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=touch-crop-1';
 import { openPosterEditor } from './poster-editor.mjs?v=touch-crop-1';
-import { filterPosterPhotos, posterPhotos, rankPosterPhotos } from './poster-photos.mjs?v=portrait-editor-1';
+import { filterPosterPhotos, posterPhotos, rankPosterPhotos } from './poster-photos.mjs?v=photo-gallery-2';
 import { photoInputError } from './manual-photo.mjs';
 import { createCopyRequest } from './clipboard-copy.mjs';
 
