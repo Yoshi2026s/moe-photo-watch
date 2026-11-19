@@ -1,9 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { posterThemeProfile } from '../poster-theme-profile.mjs';
-import { rankPosterPhotos, posterPhotos } from '../poster-photos.mjs';
+import { filterPosterPhotos, rankPosterPhotos, posterPhotos } from '../poster-photos.mjs';
 import { announcementFacts } from '../announcement-facts.mjs';
 import { nextDesign } from '../announcement-poster.mjs';
+
+test('掲載写真を名前と衣装の両方で絞り込み、解除で元の候補を表示する', () => {
+  const search = (query, outfit) => filterPosterPhotos(posterPhotos,query,outfit).map(photo=>photo.name);
+  assert.deepEqual(search('　庭園 ', 'kimono'), ['garden']);
+  assert.deepEqual(search('ﾌﾞﾙｰﾘﾎﾞﾝ', 'animal'), ['blue-ribbon','blue-ribbon-green','blue-ribbon-red']);
+  assert.deepEqual(search('庭園', 'swim'), []);
+  assert.equal(search('', 'kimono').length,4);
+  assert.equal(search('', '').length,posterPhotos.length);
+});
 
 test('撮影会の基本衣装とオプションを分け、会場の雰囲気を背景の選択に使う', () => {
   const event = {title:'個人撮影会',venue:'Gallery-O17 MADEMOISELLE',details:'料金：私服10,000円。オプション：水着＋5,000円。'};

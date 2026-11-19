@@ -2,7 +2,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/moe-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/moe-192.png">
-<link rel="stylesheet" href="style.css?v=portrait-ui-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
+<link rel="stylesheet" href="style.css?v=portrait-editor-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
 <fieldset id="event-view" class="view-picker">
   <legend>表示形式</legend>
   <div class="view-choices">
@@ -75,10 +75,15 @@
       <button type="button" class="cancel-local-photo">取り消す</button>
     </div>
   </section>
+  <p class="current-photo" hidden></p>
   <div class="photo-filters" hidden>
-    <label>写真を検索<input type="search" class="photo-query" placeholder="写真名やファイル名"></label>
+    <label>写真を検索<input type="search" class="photo-query" placeholder="写真の名前"></label>
+    <label>衣装<select class="photo-outfit">
+      <option value="">すべて</option><option value="kimono">和装</option><option value="swim">水着</option><option value="animal">アニマル</option>
+    </select></label>
   </div>
   <p class="photo-results" role="status" hidden></p>
+  <button type="button" class="clear-photo-filters" hidden>絞り込みを解除</button>
   <div class="poster-choices"></div>
   <button type="button" class="more-photos" hidden>写真をさらに表示</button>
 </dialog>
@@ -86,25 +91,37 @@
   <div class="dialog-heading"><h2 id="poster-editor-heading">告知画像の調整</h2><button type="button" class="cancel-poster-edit" autofocus>戻る</button></div>
   <div class="poster-edit-body">
     <div class="poster-edit-preview" aria-label="告知画像のプレビュー"></div>
+    <div class="mobile-edit-tabs" role="group" aria-label="調整する項目">
+      <button type="button" data-edit-tab="layout" aria-pressed="true">配色・配置</button>
+      <button type="button" data-edit-tab="text" aria-pressed="false">文字・背景</button>
+      <button type="button" data-edit-tab="crop" aria-pressed="false">切り取り</button>
+    </div>
     <div class="poster-edit-controls">
-      <fieldset>
+      <fieldset data-edit-panel="layout">
         <legend>配色と配置</legend>
         <div class="poster-palettes" role="group" aria-label="配色"></div>
         <label class="format-label">配置<select id="poster-layout"></select></label>
+        <button type="button" class="flip-poster">左右を反転</button>
+      </fieldset>
+      <fieldset data-edit-panel="text">
+        <legend>文字と背景</legend>
         <label class="format-label">文字演出<select id="poster-lettering"><option value="">テーマに合わせる</option></select></label>
         <label class="format-label">見出しの書体<select id="poster-typeface"><option value="">テーマに合わせる</option><option value="serif">明朝体</option><option value="sans">ゴシック体</option></select></label>
         <label class="format-label">文字サイズ<select id="poster-type-size"><option value="">おまかせ</option><option value="large">大きめ</option></select></label>
         <label class="format-label">背景の柄<select id="poster-pattern">
           <option value="">テーマに合わせる</option><option value="none">柄なし</option>
         </select></label>
-        <button type="button" class="flip-poster">左右を反転</button>
       </fieldset>
-      <fieldset class="poster-crop">
+      <fieldset class="poster-crop" data-edit-panel="crop">
         <legend>写真の切り取り</legend>
         <label class="photo-fit"><input type="checkbox" name="fit">写真全体を収める</label>
-        <label>拡大 <input type="range" name="zoom" min="1" max="2.5" step="0.05" value="1"></label>
-        <label>横位置 <input type="range" name="x" min="0" max="1" step="0.01" value="0.5"></label>
-        <label>縦位置 <input type="range" name="y" min="0" max="1" step="0.01" value="0.28"></label>
+        <label>拡大 <input type="range" name="zoom" min="1" max="2.5" step="0.05" value="1"><span data-crop-value="zoom" aria-hidden="true">100%</span></label>
+        <label>横位置 <input type="range" name="x" min="0" max="1" step="0.01" value="0.5"><span data-crop-value="x" aria-hidden="true">50%</span></label>
+        <label>縦位置 <input type="range" name="y" min="0" max="1" step="0.01" value="0.28"><span data-crop-value="y" aria-hidden="true">28%</span></label>
+        <div class="crop-actions">
+          <button type="button" class="center-crop">中央に寄せる</button>
+          <button type="button" class="reset-crop">切り取りを戻す</button>
+        </div>
       </fieldset>
     </div>
   </div>
@@ -113,4 +130,4 @@
     <button type="button" class="apply-poster-edit">反映する</button>
   </div>
 </dialog>
-<script type="module" src="app.js?v=portrait-ui-1"></script></body></html>
+<script type="module" src="app.js?v=portrait-editor-1"></script></body></html>

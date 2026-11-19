@@ -1,8 +1,8 @@
 import { nextBookingChange } from './reservation.mjs?v=gallery-1';
 import { announcementFacts, announcementSkillPrompt } from './announcement-facts.mjs?v=manual-photos-1';
 import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=photo-themes-1';
-import { openPosterEditor } from './poster-editor.mjs?v=photo-themes-1';
-import { posterPhotos, rankPosterPhotos } from './poster-photos.mjs?v=photo-themes-1';
+import { openPosterEditor } from './poster-editor.mjs?v=portrait-editor-1';
+import { filterPosterPhotos, posterPhotos, rankPosterPhotos } from './poster-photos.mjs?v=portrait-editor-1';
 import { photoInputError } from './manual-photo.mjs';
 import { createCopyRequest } from './clipboard-copy.mjs';
 
@@ -38,6 +38,9 @@ const localPhotoName = picker.querySelector('.local-photo-name');
 const applyLocalPhoto = picker.querySelector('.use-local-photo');
 const photoFilters = picker.querySelector('.photo-filters');
 const photoQuery = picker.querySelector('.photo-query');
+const photoOutfit = picker.querySelector('.photo-outfit');
+const photoCurrent = picker.querySelector('.current-photo');
+const clearPhotoFilters = picker.querySelector('.clear-photo-filters');
 const photoResults = picker.querySelector('.photo-results');
 const morePhotos = picker.querySelector('.more-photos');
 const photoPageSize = 24;
@@ -49,7 +52,7 @@ let press, saveMenuTimer;
 const writeClipboard = text => navigator.clipboard.writeText(text);
 const postCopy = createCopyRequest(writeClipboard);
 const skillCopy = createCopyRequest(writeClipboard);
-let selectedTheme = '', selectedPhoto = '', pickerMode, pickerRequest = 0;
+let selectedTheme = '', selectedPhoto = '', activePhoto = '', pickerMode, pickerRequest = 0;
 const photoSources = new WeakMap();
 let recommendedPhotos;
 let photoLimit = photoPageSize;
@@ -195,8 +198,10 @@ function clearThumbnails() {
 function renderPhotoChoices() {
   const focused = choices.contains(document.activeElement) && document.activeElement.dataset.photo;
   clearThumbnails();
-  const query = photoQuery.value.trim().normalize('NFKC').toLocaleLowerCase('ja');
-  const candidates = recommendedPhotos.filter(photo => photo.label.normalize('NFKC').toLocaleLowerCase('ja').includes(query));
+  const query = photoQuery.value.trim();
+  const outfit = photoOutfit.value;
+  const candidates = filterPosterPhotos(recommendedPhotos,query,outfit);
+  clearPhotoFilters.hidden = !query && !outfit;
   const visible = candidates.slice(0,photoLimit);
   photoResults.textContent = candidates.length ? candidates.length + '枚中 ' + visible.length + '枚を表示'
     : '条件に合う写真がありません。';
@@ -206,7 +211,7 @@ function renderPhotoChoices() {
     thumbnail.alt = '';
     thumbnail.loading = 'lazy';
     thumbnail.src = photo.src;
-    const choice = thumbnailChoice(photo.label,thumbnail,!blank && previousPhoto === photo.src,() => useReferencePhoto(photo.src));
+    const choice = thumbnailChoice(photo.label,thumbnail,activePhoto === photo.src,() => useReferencePhoto(photo.src));
     choice.dataset.photo = photo.src;
     choices.append(choice);
     if (photo.src === focused) choice.focus({preventScroll:true});
@@ -218,6 +223,12 @@ function filterPhotos() {
   renderPhotoChoices();
 }
 photoQuery.addEventListener('input',filterPhotos);
+photoOutfit.addEventListener('change',filterPhotos);
+clearPhotoFilters.addEventListener('click',() => {
+  photoQuery.value = photoOutfit.value = '';
+  filterPhotos();
+  photoQuery.focus();
+});
 morePhotos.addEventListener('click',() => {
   const firstNew = photoLimit;
   photoLimit += photoPageSize;
@@ -233,6 +244,8 @@ async function openPicker(mode) {
   fileFormats.hidden = mode !== 'photo';
   themeFilter.parentElement.hidden = mode === 'photo';
   photoFilters.hidden = photoResults.hidden = mode !== 'photo';
+  photoCurrent.hidden = mode !== 'photo';
+  clearPhotoFilters.hidden = true;
   morePhotos.hidden = true;
   clearThumbnails();
   resetLocalPreview();
@@ -241,6 +254,8 @@ async function openPicker(mode) {
   picker.scrollTop = 0;
   if (mode === 'photo') {
     photoQuery.value = '';
+    photoOutfit.value = '';
+    photoCurrent.textContent = '使用中：' + choosePhotoButton.querySelector('small').textContent;
     photoLimit = photoPageSize;
     recommendedPhotos = rankPosterPhotos(posterPhotos,announcementFacts(event).profile,undefined,true);
     renderPhotoChoices();
@@ -316,7 +331,12 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
     if (id !== request) return;
     const reference = photo && photoSources.get(photo);
     previousPhoto = reference?.src || '';
+    activePhoto = reference?.src || '';
     choosePhotoButton.querySelector('small').textContent = reference?.label || (photo ? (uploadedName || '端末の写真') : '空欄');
+    if (picker.open && pickerMode === 'photo') {
+      photoCurrent.textContent = '使用中：' + choosePhotoButton.querySelector('small').textContent;
+      renderPhotoChoices();
+    }
     const canvas = renderPoster(facts,design,photo,format.value,{ crop });
     const blob = await new Promise((resolve,reject) =>
       canvas.toBlob(output => output ? resolve(output) : reject(new Error('PNG')), 'image/png'));
@@ -367,6 +387,7 @@ export function openAnnouncement(item) {
   blank = false;
   fileInput.value = '';
   selectedPhoto = '';
+  activePhoto = '';
   dialog.querySelector('.event-name').textContent = item.title;
   dialog.showModal();
   dialog.scrollTop = 0;
