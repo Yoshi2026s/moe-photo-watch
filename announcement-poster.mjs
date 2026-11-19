@@ -424,12 +424,15 @@ function drawAnnouncementMessage(ctx, message, top, design) {
   ctx.restore();
 }
 
-export function renderPoster(facts, design, photo, format = 'story', { previewScale = 1, crop, onPhotoFrame } = {}) {
+export function renderPoster(facts, design, photo, format = 'story', {
+  previewScale = 1, crop, onPhotoFrame, secondaryPhoto, secondCrop, onSecondPhotoFrame
+} = {}) {
   const story = format === 'story';
   const square = format === 'square';
   const H = story ? 1920 : square ? 1080 : 1350;
   const banner = design.layout === 'banner';
-  const stacked = design.layout === 'stack' || banner;
+  const pair = Boolean(photo && secondaryPhoto);
+  const stacked = pair || design.layout === 'stack' || banner;
   const wide = design.layout === 'feature';
   const time = facts.rows.find(([label]) => label === '開催時間')?.[1] || '';
   const heroTime = time && [...time].length <= 18;
@@ -494,8 +497,20 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   const surplus = Math.max(0,bodyBottom-top-baseHeight-infoSpace-normalBody);
   const growth = photo ? Math.min(story ? 450 : 175,surplus*.86) : 0;
   const baseWidth = stacked ? (story ? 645 : 530) : story ? (wide ? 505 : 414) : (wide ? 425 : 340);
-  const pw = banner ? 930 : Math.min(stacked ? 898 : 545,baseWidth + growth*(stacked ? .8 : .34));
-  const ph = baseHeight + growth;
+  const pw = pair ? 916 : banner ? 930 : Math.min(stacked ? 898 : 545,baseWidth + growth*(stacked ? .8 : .34));
+  let ph = baseHeight + growth;
+  let widths, heights;
+  const pairGap = 52;
+  if (pair) {
+    const firstRatio = photo.naturalWidth/photo.naturalHeight;
+    const secondRatio = secondaryPhoto.naturalWidth/secondaryPhoto.naturalHeight;
+    const naturalShare = Math.min(.62,Math.max(.38,firstRatio/(firstRatio+secondRatio)));
+    const share = { split: .5, feature: .56, stack: naturalShare, banner: .43 }[design.layout] ?? naturalShare;
+    widths = [(pw-pairGap)*share,(pw-pairGap)*(1-share)];
+    const naturalHeights = [widths[0]/firstRatio,widths[1]/secondRatio];
+    ph = Math.min(ph,Math.max(160,...naturalHeights));
+    heights = naturalHeights.map(height => Math.min(ph,Math.max(ph*.5,height)));
+  }
   const px = stacked ? (W-pw)/2 : design.left ? 68 : W-68-pw;
   const tx = stacked ? (design.left ? 62 : W/2+24) : design.left ? px+pw+56 : 62;
   const tw = stacked ? W/2-86 : W-pw-192;
@@ -540,7 +555,26 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   if (stacked) ctx.textAlign = 'center';
   heading.forEach((line,index) => drawLettering(ctx,line,stacked ? W/2 : 62,titleY+index*(size+12),size,lettering));
   ctx.textAlign = 'left';
-  portrait(ctx,photo,px,top,pw,ph,design,crop,onPhotoFrame);
+  if (pair) {
+    // Close-fitting rectangular frames keep two differently oriented photos readable.
+    const pairDesign = { ...design, shape: design.shape === 'oval' || design.shape === 'tilt' ? 'round' : design.shape };
+    const frames = [[photo,crop,onPhotoFrame],[secondaryPhoto,secondCrop,onSecondPhotoFrame]]
+      .map(([image,framing,notify],index) => {
+        const settings = framing ?? { fit:true };
+        const ratio = image.naturalWidth/image.naturalHeight;
+        const width = settings.fit ? Math.min(widths[index],heights[index]*ratio) : widths[index];
+        const height = settings.fit ? Math.min(heights[index],widths[index]/ratio) : heights[index];
+        return { image, settings, notify, width, height };
+      });
+    const left = (W-frames[0].width-frames[1].width-pairGap)/2;
+    frames.forEach(({ image, settings, notify, width, height },index) => {
+      const x = index === Number(Boolean(design.left)) ? left : left+frames[1-index].width+pairGap;
+      const y = top+(ph-height)/(wide ? 1 : 2);
+      portrait(ctx,image,x,y,width,height,pairDesign,settings,notify);
+    });
+  } else {
+    portrait(ctx,photo,px,top,pw,ph,design,crop,onPhotoFrame);
+  }
   motif(ctx,stacked ? (heroTime ? W/2 : W/2+185) : tx+tw-28,infoTop+32,22,design.key,accent);
   ctx.fillStyle = ink;
   ctx.font = '600 32px ' + sans;

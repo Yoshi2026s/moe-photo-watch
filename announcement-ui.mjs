@@ -1,7 +1,7 @@
 import { nextBookingChange } from './reservation.mjs?v=gallery-1';
 import { announcementFacts, announcementSkillPrompt } from './announcement-facts.mjs?v=manual-photos-1';
-import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=touch-crop-1';
-import { openPosterEditor } from './poster-editor.mjs?v=touch-crop-1';
+import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=two-photos-1';
+import { openPosterEditor } from './poster-editor.mjs?v=two-photos-1';
 import { filterPosterPhotos, posterPhotos, rankPosterPhotos } from './poster-photos.mjs?v=e4916b76b8a5906c';
 import { photoInputError } from './manual-photo.mjs';
 import { createCopyRequest } from './clipboard-copy.mjs';
@@ -43,11 +43,16 @@ const photoCurrent = picker.querySelector('.current-photo');
 const clearPhotoFilters = picker.querySelector('.clear-photo-filters');
 const photoResults = picker.querySelector('.photo-results');
 const morePhotos = picker.querySelector('.more-photos');
+const autoChoice = picker.querySelector('.auto-choice');
+const pairMode = picker.querySelector('.photo-pair-mode');
+const applyPair = picker.querySelector('.apply-photo-pair');
+const resetPair = picker.querySelector('.reset-photo-pair');
 const photoPageSize = 24;
 const lastDesign = new Map();
 let event, request = 0, uploaded = null, uploadedName = '', pendingPhoto, blank = false, previousPhoto = '', downloadUrl = '';
 const posterFiles = new WeakMap();
 let displayedText = '', design, photoChoice, crop;
+let secondaryPhoto, secondCrop, pendingPair = null;
 let press, saveMenuTimer;
 const writeClipboard = text => navigator.clipboard.writeText(text);
 const postCopy = createCopyRequest(writeClipboard);
@@ -155,15 +160,19 @@ async function loadPhoto(url) {
   return image;
 }
 
+async function loadReference(candidate) {
+  const image = await loadPhoto(candidate.src);
+  photoSources.set(image,candidate);
+  return image;
+}
+
 async function choosePhoto(facts) {
   if (blank || uploaded) return uploaded;
   const selected = posterPhotos.find(photo => photo.src === selectedPhoto);
   const automatic = rankPosterPhotos(posterPhotos,facts.profile,previousPhoto);
   for (const candidate of (selected ? [selected,...automatic] : automatic)) {
     try {
-      const image = await loadPhoto(candidate.src);
-      photoSources.set(image,candidate);
-      return image;
+      return await loadReference(candidate);
     } catch { /* Try another reviewed reference before leaving the photo space blank. */ }
   }
   return null;
@@ -182,10 +191,7 @@ function thumbnailChoice(label, thumbnail, selected, apply) {
   button.setAttribute('aria-pressed', String(selected));
   name.textContent = label;
   button.append(thumbnail,name);
-  button.addEventListener('click',() => {
-    picker.close();
-    apply();
-  });
+  button.addEventListener('click',apply);
   return button;
 }
 
@@ -193,6 +199,36 @@ function clearThumbnails() {
   designPreviewObserver?.disconnect();
   designPreviewObserver = null;
   choices.replaceChildren();
+}
+
+function syncPhotoPicker() {
+  const pairing = pendingPair !== null;
+  pairMode.setAttribute('aria-pressed',String(pairing));
+  applyPair.hidden = resetPair.hidden = !pairing;
+  resetPair.disabled = !pendingPair?.length;
+  applyPair.disabled = pendingPair?.length !== 2;
+  autoChoice.hidden = pairing;
+  blankButton.hidden = fileInput.parentElement.hidden = fileFormats.hidden = pairing;
+  const label = src => posterPhotos.find(photo => photo.src === src)?.label;
+  photoCurrent.textContent = pairing
+    ? pendingPair.map((src,index) => (index+1) + '枚目：' + label(src)).join(' ／ ') + (pendingPair.length < 2
+      ? (pendingPair.length ? ' ／ 2枚目を選んでください。' : '素材から2枚を選んでください。') : '')
+    : secondaryPhoto ? '現在の告知画像は2枚の写真を使用中です。'
+      : '使用中：' + choosePhotoButton.querySelector('small').textContent;
+}
+
+function selectPairPhoto(src) {
+  const index = pendingPair.indexOf(src);
+  if (index < 0 && pendingPair.length === 2) {
+    showPickerStatus('写真を入れ替えるには、選んだ写真をもう一度押すか「選び直す」を押してください。');
+    return;
+  }
+  pickerRequest++;
+  showPickerStatus('');
+  if (index < 0) pendingPair.push(src);
+  else pendingPair.splice(index,1);
+  syncPhotoPicker();
+  renderPhotoChoices();
 }
 
 function renderPhotoChoices() {
@@ -211,8 +247,17 @@ function renderPhotoChoices() {
     thumbnail.alt = '';
     thumbnail.loading = 'lazy';
     thumbnail.src = photo.src;
-    const choice = thumbnailChoice(photo.label,thumbnail,activePhoto === photo.src,() => useReferencePhoto(photo.src));
+    const index = pendingPair?.indexOf(photo.src) ?? -1;
+    const selected = pendingPair ? index >= 0 : !secondaryPhoto && activePhoto === photo.src;
+    const choice = thumbnailChoice(photo.label,thumbnail,selected,() => {
+      if (pendingPair) selectPairPhoto(photo.src);
+      else {
+        picker.close();
+        useReferencePhoto(photo.src);
+      }
+    });
     choice.dataset.photo = photo.src;
+    if (index >= 0) choice.dataset.pairPosition = index+1;
     choices.append(choice);
     if (photo.src === focused) choice.focus({preventScroll:true});
   }
@@ -236,6 +281,53 @@ morePhotos.addEventListener('click',() => {
   choices.children[firstNew]?.focus();
 });
 
+pairMode.addEventListener('click',() => {
+  pickerRequest++;
+  if (pendingPair) pendingPair = null;
+  else if (secondaryPhoto) pendingPair = [selectedPhoto,photoSources.get(secondaryPhoto).src];
+  else pendingPair = selectedPhoto && activePhoto === selectedPhoto ? [selectedPhoto] : [];
+  resetLocalPreview();
+  showPickerStatus('');
+  syncPhotoPicker();
+  renderPhotoChoices();
+});
+
+resetPair.addEventListener('click',() => {
+  pickerRequest++;
+  pendingPair = [];
+  showPickerStatus('');
+  syncPhotoPicker();
+  renderPhotoChoices();
+  pairMode.focus({preventScroll:true});
+});
+
+applyPair.addEventListener('click',async () => {
+  if (applyPair.disabled || pendingPair?.length !== 2) return;
+  const id = ++pickerRequest;
+  applyPair.disabled = true;
+  showPickerStatus('写真を読み込んでいます…');
+  const sources = [...pendingPair];
+  try {
+    const [first,second] = await Promise.all(sources.map(src => loadReference(posterPhotos.find(photo => photo.src === src))));
+    if (id !== pickerRequest || !picker.open || !dialog.open) return;
+    const existingCrops = secondaryPhoto && new Map([[selectedPhoto,crop],[photoSources.get(secondaryPhoto).src,secondCrop]]);
+    crop = existingCrops ? existingCrops.get(sources[0]) : null;
+    secondCrop = existingCrops ? existingCrops.get(sources[1]) : null;
+    selectedPhoto = sources[0];
+    uploaded = null;
+    uploadedName = '';
+    blank = false;
+    photoChoice = Promise.resolve(first);
+    secondaryPhoto = second;
+    picker.close();
+    generate();
+  } catch {
+    if (id === pickerRequest && picker.open) showPickerStatus('写真を読み込めませんでした。もう一度反映するか、別の写真を選んでください。');
+  } finally {
+    if (id === pickerRequest && picker.open) applyPair.disabled = false;
+  }
+});
+
 async function openPicker(mode) {
   const id = ++pickerRequest;
   pickerMode = mode;
@@ -244,7 +336,10 @@ async function openPicker(mode) {
   fileFormats.hidden = mode !== 'photo';
   themeFilter.parentElement.hidden = mode === 'photo';
   photoFilters.hidden = photoResults.hidden = mode !== 'photo';
-  photoCurrent.hidden = mode !== 'photo';
+  photoCurrent.hidden = pairMode.hidden = mode !== 'photo';
+  applyPair.hidden = resetPair.hidden = true;
+  autoChoice.hidden = false;
+  pendingPair = null;
   clearPhotoFilters.hidden = true;
   morePhotos.hidden = true;
   clearThumbnails();
@@ -255,7 +350,8 @@ async function openPicker(mode) {
   if (mode === 'photo') {
     photoQuery.value = '';
     photoOutfit.value = '';
-    photoCurrent.textContent = '使用中：' + choosePhotoButton.querySelector('small').textContent;
+    if (secondaryPhoto) pendingPair = [selectedPhoto,photoSources.get(secondaryPhoto).src];
+    syncPhotoPicker();
     photoLimit = photoPageSize;
     recommendedPhotos = rankPosterPhotos(posterPhotos,announcementFacts(event).profile,undefined,true);
     renderPhotoChoices();
@@ -284,10 +380,11 @@ async function openPicker(mode) {
       thumbnail.style.aspectRatio = { story:'9/16', feed:'4/5', square:'1' }[format.value];
       thumbnail.setAttribute('aria-hidden','true');
       const draw = () => {
-        try { thumbnail.append(renderPoster(facts,candidate,photo,format.value,{ previewScale: .2, crop })); }
+        try { thumbnail.append(renderPoster(facts,candidate,photo,format.value,{ previewScale: .2, crop, secondaryPhoto, secondCrop })); }
         catch { thumbnail.classList.add('thumbnail-unavailable'); }
       };
       const choice = thumbnailChoice(theme.label,thumbnail,design.key === key,() => {
+        picker.close();
         design = candidate;
         selectedTheme = key;
         generate();
@@ -314,7 +411,7 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
   chooseDesignButton.querySelector('small').textContent = posterThemes[design.key].label;
   if (newPhoto) choosePhotoButton.querySelector('small').textContent = '読み込み中…';
   if (newPhoto) {
-    crop = null;
+    crop = secondCrop = secondaryPhoto = null;
     photoChoice = choosePhoto(facts);
   }
   displayedText = facts.text;
@@ -332,12 +429,13 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
     const reference = photo && photoSources.get(photo);
     previousPhoto = reference?.src || '';
     activePhoto = reference?.src || '';
-    choosePhotoButton.querySelector('small').textContent = reference?.label || (photo ? (uploadedName || '端末の写真') : '空欄');
+    choosePhotoButton.querySelector('small').textContent = secondaryPhoto ? '2枚を使用中'
+      : reference?.label || (photo ? (uploadedName || '端末の写真') : '空欄');
     if (picker.open && pickerMode === 'photo') {
-      photoCurrent.textContent = '使用中：' + choosePhotoButton.querySelector('small').textContent;
+      if (!pendingPair) syncPhotoPicker();
       renderPhotoChoices();
     }
-    const canvas = renderPoster(facts,design,photo,format.value,{ crop });
+    const canvas = renderPoster(facts,design,photo,format.value,{ crop, secondaryPhoto, secondCrop });
     const blob = await new Promise((resolve,reject) =>
       canvas.toBlob(output => output ? resolve(output) : reject(new Error('PNG')), 'image/png'));
     if (id !== request) return;
@@ -403,10 +501,11 @@ editButton.addEventListener('click',async () => {
   const photo = await photoChoice;
   if (id !== request || !dialog.open) return;
   openPosterEditor({
-    facts: announcementFacts(event), design, photo, format: format.value, crop,
-    apply(variant, framing) {
+    facts: announcementFacts(event), design, photo, secondaryPhoto, format: format.value, crop, secondCrop,
+    apply(variant, framing, secondFraming) {
       design = variant;
       crop = framing;
+      secondCrop = secondFraming;
       generate();
     }
   });
@@ -475,6 +574,7 @@ blankButton.addEventListener('click',() => {
   blank = true;
   uploaded = null;
   uploadedName = '';
+  selectedPhoto = '';
   fileInput.value = '';
   generate({ newPhoto: true });
 });
@@ -486,7 +586,7 @@ function useReferencePhoto(src = '') {
   fileInput.value = '';
   generate({ newPhoto: true });
 }
-picker.querySelector('.auto-choice').addEventListener('click',() => {
+autoChoice.addEventListener('click',() => {
   picker.close();
   if (pickerMode === 'photo') useReferencePhoto();
   else {
@@ -538,6 +638,7 @@ applyLocalPhoto.addEventListener('click',() => {
   if (!pendingPhoto || !picker.open || !dialog.open) return;
   uploaded = pendingPhoto.image;
   uploadedName = pendingPhoto.name;
+  selectedPhoto = '';
   blank = false;
   picker.close();
   generate({ newPhoto: true });

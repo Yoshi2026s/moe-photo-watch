@@ -86,6 +86,11 @@ body:has(dialog[open]) { overflow: hidden; }
 }
 .poster-pickers small { margin-top: 3px; color: #674e5c; font-size: .75rem; font-weight: 500; overflow-wrap: anywhere; }
 #poster-picker { width: min(100% - 20px, 780px); }
+.picker-heading-actions { display: flex; flex: 0 0 auto; gap: 6px; }
+.picker-heading-actions button { min-width: 48px; padding-inline: 8px; }
+.apply-photo-pair, .photo-pair-mode[aria-pressed=true] { background: #843b60; color: white; }
+.apply-photo-pair:disabled { background: #f2e5ed; color: #674458; cursor: default; }
+.picker-heading-actions [hidden], .crop-photo-target[hidden] { display: none; }
 .poster-picker-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-block: 12px; }
 .poster-picker-actions [hidden], .poster-choice[hidden] { display: none; }
 .upload-photo { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; max-width: 100%; font-size: .875rem; }
@@ -118,6 +123,7 @@ body:has(dialog[open]) { overflow: hidden; }
 }
 .poster-choice[aria-pressed=true] { border-color: #843b60; background: #fcebf3; }
 .poster-choice[aria-pressed=true] span::before { content: '✓ '; }
+.poster-choice[data-pair-position] span::before { content: attr(data-pair-position) '枚目・'; }
 .poster-choice img, .poster-choice canvas { display: block; width: 100%; border-radius: 6px; background: #f8eef4; }
 .poster-choice img { aspect-ratio: 4 / 5; object-fit: cover; object-position: center 30%; }
 .poster-choice canvas { height: auto; }
