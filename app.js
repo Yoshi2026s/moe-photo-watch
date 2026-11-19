@@ -16,6 +16,11 @@ function todayJst() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/
 function dateKey(date) {
   return dayParts(date) ? date.replaceAll('/', '-') : '9999';
 }
+function searchTerm(value) {
+  return String(value ?? '').normalize('NFKC').toLocaleLowerCase('ja')
+    .replace(/(\d+)[年/-](\d+)[月/-](\d+)日?/g, (_,year,month,day) => year + '/' + Number(month) + '/' + Number(day))
+    .replace(/(\d+)[月/-](\d+)日?/g, (_,month,day) => Number(month) + '/' + Number(day));
+}
 function pastCutoff(today) {
   const [year, month, day] = today.split('-').map(Number);
   const first = new Date(Date.UTC(year, month - 4, 1));
@@ -109,17 +114,39 @@ function show(data) {
   const today = todayJst();
   const past = period.value === 'past';
   const cutoff = past ? pastCutoff(today) : today;
-  const term = query.value.trim().normalize('NFKC').toLocaleLowerCase('ja');
+  const terms = searchTerm(query.value.trim()).split(/\s+/).filter(Boolean);
   const list = data.events.filter(item => {
     const date = dateKey(item.date);
     const isPast = date < today;
-    const searchText = [item.title, item.venue, item.date].join(' ').normalize('NFKC').toLocaleLowerCase('ja');
-    return isPast === past && date >= cutoff && searchText.includes(term);
+    if (isPast !== past || date < cutoff) return false;
+    const searchText = searchTerm([item.title, item.venue, item.date].join(' '));
+    const eventDate = searchTerm(item.date);
+    return terms.every(term => {
+      if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(term)) return eventDate === term;
+      if (/^\d{1,2}\/\d{1,2}$/.test(term)) return eventDate.endsWith('/' + term);
+      return searchText.includes(term);
+    });
   });
   list.sort((a, b) => (past ? -1 : 1) * dateKey(a.date).localeCompare(dateKey(b.date)));
   events.replaceChildren();
   updated.textContent = data.updated_at ? '掲載情報の確認：' + data.updated_at + '（日本時間）' : '掲載情報の確認：未確認';
-  if (!list.length) { const box = element('div', '', 'empty'); box.append(element('strong', term ? '検索条件に一致する予定がありません' : past ? '過去の掲載分はありません' : 'これからの掲載予定はありません')); events.append(box); return; }
+  if (terms.length) events.append(element('p', '検索結果 ' + list.length + '件', 'search-results'));
+  if (!list.length) {
+    const box = element('div', '', 'empty');
+    box.append(element('strong', terms.length ? '検索条件に一致する予定がありません' : past ? '過去の掲載分はありません' : 'これからの掲載予定はありません'));
+    if (terms.length) {
+      const reset = element('button', '検索をクリア');
+      reset.type = 'button';
+      reset.addEventListener('click', () => {
+        query.value = '';
+        applyFilters();
+        query.focus();
+      });
+      box.append(reset);
+    }
+    events.append(box);
+    return;
+  }
   const mode = viewPicker.querySelector('input:checked').value;
   const makeCard = item => eventCard(item, today, past, mode === 'compact');
   if (mode === 'calendar') {
@@ -209,7 +236,7 @@ function eventCard(item, today, past, compact = false) {
   make.addEventListener('click', async () => {
     make.disabled = true;
     try {
-      const { openAnnouncement } = await import('./announcement-ui.mjs?v=photo-themes-1');
+      const { openAnnouncement } = await import('./announcement-ui.mjs?v=announcement-flow-1');
       openAnnouncement(item);
     } catch {
       make.textContent = '告知画面を再読み込み';

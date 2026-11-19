@@ -7,8 +7,8 @@ import { listMaterialPhotos, savedMaterialFolder, saveMaterialFolder, supportsMa
 
 const dialog = document.querySelector('#announcement');
 const preview = dialog.querySelector('.poster-preview');
-const message = dialog.querySelector('textarea');
-const feedback = dialog.querySelector('[role=status]');
+const message = dialog.querySelector('#social-message');
+const feedback = dialog.querySelector('.announce-feedback');
 const shuffle = dialog.querySelector('.shuffle');
 const copy = dialog.querySelector('.copy-message');
 const copySkillPrompt = dialog.querySelector('.copy-skill-prompt');
@@ -28,6 +28,12 @@ const blankButton = picker.querySelector('.blank-photo');
 const fileInput = picker.querySelector('input[type=file]');
 const folderButton = picker.querySelector('.material-folder');
 const removeFolderButton = picker.querySelector('.remove-material-folder');
+const photoFilters = picker.querySelector('.photo-filters');
+const photoQuery = picker.querySelector('.photo-query');
+const photoOrigin = picker.querySelector('.photo-origin');
+const photoResults = picker.querySelector('.photo-results');
+const morePhotos = picker.querySelector('.more-photos');
+const photoPageSize = 24;
 const lastDesign = new Map();
 let event, request = 0, uploaded = null, blank = false, previousPhoto = '', downloadUrl = '';
 const posterFiles = new WeakMap();
@@ -39,8 +45,9 @@ const photoSources = new WeakMap();
 const thumbnailUrls = [];
 let materialFolder = supportsMaterialFolder ? savedMaterialFolder().catch(() => null) : Promise.resolve(null);
 let currentMaterials = { state:'none', photos:[] };
-let materialSelection = currentMaterials;
-let materialScan = 0;
+let materialScan, recommendedPhotos;
+let photoLimit = photoPageSize;
+let designPreviewObserver;
 
 themeFilter.add(new Option('すべて',''));
 for (const group of Object.keys(posterThemeGroups)) themeFilter.add(new Option(group,group));
@@ -82,7 +89,8 @@ preview.addEventListener('pointerup', e => {
     figure.append(menu);
     const bounds = image.getBoundingClientRect();
     const height = menu.offsetHeight;
-    menu.style.top = Math.max(0, Math.min(y - bounds.top - height/2, bounds.height - height)) + 'px';
+    const offset = bounds.top - figure.getBoundingClientRect().top;
+    menu.style.top = offset + Math.max(0, Math.min(y - bounds.top - height/2, bounds.height - height)) + 'px';
   }, 120);
 });
 preview.addEventListener('contextmenu', clearPress);
@@ -122,10 +130,11 @@ function posterActions(file, url) {
   open.rel = 'noopener';
   open.textContent = '画像だけ開く';
   const download = document.createElement('a');
+  download.className = 'download-poster';
   download.href = url;
   download.download = file.name;
   download.textContent = 'PNGをダウンロード';
-  actions.append(open,download);
+  actions.append(download,open);
   return actions;
 }
 
@@ -136,22 +145,28 @@ async function loadPhoto(url) {
   return image;
 }
 
-async function refreshMaterials() {
-  const id = ++materialScan;
-  const folder = await materialFolder;
-  const result = await listMaterialPhotos(folder).catch(() => ({state:'error',photos:[]}));
-  if (id === materialScan) currentMaterials = { ...result, folder };
-  return currentMaterials;
+function refreshMaterials() {
+  const source = materialFolder;
+  if (materialScan?.source === source) return materialScan.promise;
+  const promise = source.then(async folder => {
+    const result = await listMaterialPhotos(folder).catch(() => ({state:'error',photos:[]}));
+    if (materialFolder === source) currentMaterials = { ...result, folder };
+    return currentMaterials;
+  }).finally(() => {
+    if (materialScan?.promise === promise) materialScan = null;
+  });
+  materialScan = { source, promise };
+  return promise;
 }
 
 function initialMaterials() {
   const scan = refreshMaterials();
   // Drive can take a moment to reconnect, even when the browser still has permission.
   let timer;
-  const cached = new Promise(resolve => {
+  const fallback = new Promise(resolve => {
     timer = setTimeout(() => resolve({ photos:[] }),1800);
   });
-  return Promise.race([scan,cached]).finally(() => clearTimeout(timer));
+  return Promise.race([scan,fallback]).finally(() => clearTimeout(timer));
 }
 
 async function loadMaterialPhoto(file) {
@@ -197,26 +212,37 @@ function thumbnailChoice(label, thumbnail, selected, apply, closeOnSelect = true
 }
 
 function clearThumbnails() {
+  designPreviewObserver?.disconnect();
+  designPreviewObserver = null;
   choices.replaceChildren();
   for (const url of thumbnailUrls.splice(0)) URL.revokeObjectURL(url);
 }
 
-async function showPhotoChoices(id) {
-  const selection = await refreshMaterials();
-  if (id !== pickerRequest || !picker.open) return;
-  materialSelection = selection;
+function renderPhotoChoices() {
+  const focused = choices.contains(document.activeElement) && document.activeElement.dataset.photo;
+  clearThumbnails();
+  const selection = currentMaterials;
   folderButton.hidden = !supportsMaterialFolder;
   folderButton.textContent = selection.state === 'permission' ? '同期フォルダへのアクセスを許可'
     : selection.folder ? '同期フォルダを変更' : 'Google Driveの同期フォルダを選ぶ';
   removeFolderButton.hidden = !selection.folder;
   const statuses = {
-    ready: '同期フォルダの写真 ' + selection.photos.length + '枚を読み込みました。',
+    ready: selection.photos.length ? '' : '同期フォルダに対応する画像がありません。',
     permission: '同期フォルダへのアクセスを許可すると写真を追加できます。',
     error: '同期フォルダを開けませんでした。フォルダを選び直してください。'
   };
   showPickerStatus(statuses[selection.state] || '');
-  const candidates = rankPosterPhotos(posterPhotos,announcementFacts(event).profile,undefined,true);
-  for (const photo of [...selection.photos,...candidates]) {
+  const origin = photoOrigin.value;
+  const query = photoQuery.value.trim().normalize('NFKC').toLocaleLowerCase('ja');
+  const candidates = [
+    ...(origin === 'site' ? [] : selection.photos),
+    ...(origin === 'folder' ? [] : recommendedPhotos)
+  ].filter(photo => photo.label.normalize('NFKC').toLocaleLowerCase('ja').includes(query));
+  const visible = candidates.slice(0,photoLimit);
+  photoResults.textContent = candidates.length ? candidates.length + '枚中 ' + visible.length + '枚を表示'
+    : '条件に合う写真がありません。';
+  morePhotos.hidden = visible.length === candidates.length;
+  for (const photo of visible) {
     const thumbnail = document.createElement('img');
     thumbnail.alt = '';
     thumbnail.loading = 'lazy';
@@ -225,9 +251,31 @@ async function showPhotoChoices(id) {
       thumbnailUrls.push(thumbnail.src);
     } else thumbnail.src = photo.src;
     const apply = photo.file ? () => useLocalPhoto(photo.file,photo) : () => useReferencePhoto(photo.src);
-    choices.append(thumbnailChoice(photo.label,thumbnail,!blank && previousPhoto === photo.src,apply,!photo.file));
+    const choice = thumbnailChoice(photo.label,thumbnail,!blank && previousPhoto === photo.src,apply,!photo.file);
+    choice.dataset.photo = photo.src;
+    choices.append(choice);
+    if (photo.src === focused) choice.focus({preventScroll:true});
   }
 }
+
+async function updatePhotoChoices(id) {
+  if (supportsMaterialFolder) showPickerStatus('同期フォルダを確認中…');
+  await refreshMaterials();
+  if (id === pickerRequest && picker.open) renderPhotoChoices();
+}
+
+function filterPhotos() {
+  photoLimit = photoPageSize;
+  renderPhotoChoices();
+}
+photoQuery.addEventListener('input',filterPhotos);
+photoOrigin.addEventListener('change',filterPhotos);
+morePhotos.addEventListener('click',() => {
+  const firstNew = photoLimit;
+  photoLimit += photoPageSize;
+  renderPhotoChoices();
+  choices.children[firstNew]?.focus();
+});
 
 async function openPicker(mode) {
   const id = ++pickerRequest;
@@ -236,12 +284,19 @@ async function openPicker(mode) {
   blankButton.hidden = fileInput.parentElement.hidden = mode !== 'photo';
   themeFilter.parentElement.hidden = mode === 'photo';
   folderButton.hidden = removeFolderButton.hidden = true;
+  photoFilters.hidden = photoResults.hidden = mode !== 'photo';
+  morePhotos.hidden = true;
   clearThumbnails();
   showPickerStatus('');
   picker.showModal();
   picker.scrollTop = 0;
   if (mode === 'photo') {
-    await showPhotoChoices(id);
+    photoQuery.value = '';
+    photoOrigin.value = 'all';
+    photoLimit = photoPageSize;
+    recommendedPhotos = rankPosterPhotos(posterPhotos,announcementFacts(event).profile,undefined,true);
+    renderPhotoChoices();
+    await updatePhotoChoices(id);
     return;
   }
   showPickerStatus('デザインをプレビュー中…');
@@ -249,10 +304,27 @@ async function openPicker(mode) {
     const photo = await photoChoice;
     if (id !== pickerRequest || !picker.open) return;
     const facts = announcementFacts(event);
+    const paint = new WeakMap();
+    if (typeof IntersectionObserver === 'function') {
+      designPreviewObserver = new IntersectionObserver((entries,observer) => {
+        if (id !== pickerRequest || !picker.open) return;
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          observer.unobserve(entry.target);
+          paint.get(entry.target)?.();
+        }
+      },{root:picker,rootMargin:'240px 0px'});
+    }
     for (const [key, theme] of Object.entries(posterThemes)) {
       const candidate = design.key === key ? design : nextDesign(facts,null,key);
-      const thumbnail = renderPoster(facts,candidate,photo,format.value,{ previewScale: .2, crop });
+      const thumbnail = document.createElement('div');
+      thumbnail.className = 'design-thumbnail';
+      thumbnail.style.aspectRatio = { story:'9/16', feed:'4/5', square:'1' }[format.value];
       thumbnail.setAttribute('aria-hidden','true');
+      const draw = () => {
+        try { thumbnail.append(renderPoster(facts,candidate,photo,format.value,{ previewScale: .2, crop })); }
+        catch { thumbnail.classList.add('thumbnail-unavailable'); }
+      };
       const choice = thumbnailChoice(theme.label,thumbnail,design.key === key,() => {
         design = candidate;
         selectedTheme = key;
@@ -260,6 +332,10 @@ async function openPicker(mode) {
       });
       choice.dataset.theme = key;
       choices.append(choice);
+      if (designPreviewObserver) {
+        paint.set(thumbnail,draw);
+        designPreviewObserver.observe(thumbnail);
+      } else draw();
     }
     filterDesigns();
     showPickerStatus('');
@@ -310,10 +386,18 @@ async function generate({ newDesign = false, newPhoto = false, materials = Promi
     const status = document.createElement('p');
     status.className = 'poster-action-status';
     status.setAttribute('role','status');
-    figure.append(pic,posterActions(file,downloadUrl),status);
+    figure.append(posterActions(file,downloadUrl),status);
+    if (matchMedia('(any-pointer: coarse)').matches) {
+      const tip = document.createElement('p');
+      tip.className = 'poster-save-tip';
+      tip.textContent = '画像を長押しして写真アプリに保存することもできます。';
+      figure.append(tip);
+    }
+    figure.append(pic);
     preview.replaceChildren(figure);
     lastDesign.set(key,design);
-    feedback.textContent = photo ? '告知画像を作成しました。' : '写真を挿入できる空欄で作成しました。';
+    feedback.textContent = photo ? '告知画像を作成しました。'
+      : blank ? '写真枠を空欄にしました。' : '衣装に合う写真が見つかりませんでした。「写真を選ぶ」から差し替えられます。';
   } catch {
     if (id === request) feedback.textContent = '画像を作成できませんでした。投稿文はコピーできます。';
   } finally {
@@ -365,6 +449,7 @@ picker.addEventListener('close',() => {
 format.addEventListener('change',() => generate());
 dialog.querySelector('.close-dialog').addEventListener('click',() => dialog.close());
 dialog.addEventListener('close',() => {
+  if (dialog.open) return;
   clearPress();
   request++;
   photoChoice = null;
@@ -468,8 +553,8 @@ async function updateMaterialFolder(chooseFolder) {
     materialFolder = Promise.resolve(nextFolder);
     currentMaterials = { state:'none', photos:[] };
     if (id !== pickerRequest || !picker.open) return;
-    clearThumbnails();
-    await showPhotoChoices(id);
+    renderPhotoChoices();
+    await updatePhotoChoices(id);
   } catch (error) {
     if (id === pickerRequest && picker.open && error.name !== 'AbortError') showPickerStatus('フォルダを登録できませんでした。');
   } finally {
@@ -477,13 +562,17 @@ async function updateMaterialFolder(chooseFolder) {
   }
 }
 folderButton.addEventListener('click',() => updateMaterialFolder(async () => {
-  if (materialSelection.state === 'permission') {
-    await materialSelection.folder.requestPermission({mode:'read'});
-    return materialSelection.folder;
+  if (currentMaterials.state === 'permission') {
+    await currentMaterials.folder.requestPermission({mode:'read'});
+    return currentMaterials.folder;
   }
   return window.showDirectoryPicker({id:'announcement-photos',mode:'read'});
 }));
 removeFolderButton.addEventListener('click',() => updateMaterialFolder(() => null));
+dialog.querySelector('.view-message').addEventListener('click',() => {
+  message.focus({preventScroll:true});
+  message.scrollIntoView({block:'start'});
+});
 copy.addEventListener('click',async () => {
   message.value = announcementFacts(event).text;
   try {
