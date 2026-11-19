@@ -2,7 +2,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/moe-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/moe-192.png">
-<link rel="stylesheet" href="style.css?v=portrait-editor-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
+<link rel="stylesheet" href="style.css?v=touch-crop-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
 <fieldset id="event-view" class="view-picker">
   <legend>表示形式</legend>
   <div class="view-choices">
@@ -90,7 +90,10 @@
 <dialog id="poster-editor" aria-labelledby="poster-editor-heading">
   <div class="dialog-heading"><h2 id="poster-editor-heading">告知画像の調整</h2><button type="button" class="cancel-poster-edit" autofocus>戻る</button></div>
   <div class="poster-edit-body">
-    <div class="poster-edit-preview" aria-label="告知画像のプレビュー"></div>
+    <div class="poster-edit-preview" aria-label="告知画像のプレビュー">
+      <div class="poster-edit-canvas"></div>
+      <p class="crop-gesture-hint">1本指で移動・2本指で拡大／縮小</p>
+    </div>
     <div class="mobile-edit-tabs" role="group" aria-label="調整する項目">
       <button type="button" data-edit-tab="layout" aria-pressed="true">配色・配置</button>
       <button type="button" data-edit-tab="text" aria-pressed="false">文字・背景</button>
@@ -130,4 +133,4 @@
     <button type="button" class="apply-poster-edit">反映する</button>
   </div>
 </dialog>
-<script type="module" src="app.js?v=portrait-editor-1"></script></body></html>
+<script type="module" src="app.js?v=touch-crop-1"></script></body></html>

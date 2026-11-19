@@ -134,6 +134,8 @@ body:has(dialog[open]) { overflow: hidden; }
 .poster-edit-body { display: grid; grid-template-columns: minmax(0,.85fr) minmax(225px,1fr); gap: 16px; overflow: auto; overscroll-behavior: contain; padding: 8px 4px; }
 .poster-edit-preview { position: sticky; top: 0; align-self: start; display: grid; place-items: center; padding: 8px; background: #f5edf2; border-radius: 12px; }
 .poster-edit-preview canvas { display: block; width: auto; max-width: 100%; height: auto; max-height: min(46dvh, 460px); object-fit: contain; }
+.poster-edit-canvas { min-width: 0; justify-self: stretch; display: grid; place-items: center; }
+.crop-gesture-hint { display: none; }
 .poster-edit-controls { display: grid; gap: 10px; min-width: 0; }
 .poster-edit-controls fieldset { display: grid; min-width: 0; gap: 8px; padding: 8px; margin: 0; border: 1px solid #dfc0d0; border-radius: 12px; }
 .poster-edit-controls legend { padding-inline: 5px; font-weight: 700; }
@@ -293,6 +295,8 @@ button.calendar-day { min-height: 55px; border: 0; border-radius: 0; background:
   }
   .poster-edit-preview { position: static; padding: 4px; }
   .poster-edit-preview canvas { max-height: min(28dvh,250px); }
+  .poster-edit-preview[data-crop-gesture] { touch-action: none; user-select: none; }
+  .poster-edit-preview[data-crop-gesture] .crop-gesture-hint { display: block; padding-top: 3px; color: #674458; font-size: .8rem; }
   .mobile-edit-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; }
   .mobile-edit-tabs button { padding-inline: 4px; font-size: .875rem; }
   .mobile-edit-tabs button[aria-pressed=true] { background: #843b60; color: white; }
