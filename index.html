@@ -2,7 +2,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/moe-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/moe-192.png">
-<link rel="stylesheet" href="style.css?v=post-copy-feedback-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
+<link rel="stylesheet" href="style.css?v=portrait-ui-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
 <fieldset id="event-view" class="view-picker">
   <legend>表示形式</legend>
   <div class="view-choices">
@@ -16,7 +16,13 @@
   <div class="detail-body"></div>
 </dialog>
 <dialog id="announcement" aria-labelledby="announcement-heading">
-  <div class="dialog-heading"><h2 id="announcement-heading">SNS告知を作る</h2><button type="button" class="close-dialog" autofocus>閉じる</button></div>
+  <div class="dialog-heading">
+    <h2 id="announcement-heading">SNS告知を作る</h2><button type="button" class="close-dialog" autofocus>閉じる</button>
+    <div class="mobile-announcement-nav" role="group" aria-label="告知画面の移動">
+      <button type="button" class="jump-poster" disabled>画像・保存へ</button>
+      <button type="button" class="jump-message">投稿文へ</button>
+    </div>
+  </div>
   <p class="event-name"></p>
   <div class="design-tools">
     <button type="button" class="copy-message">投稿文をコピー</button>
@@ -36,6 +42,7 @@
   <div class="poster-preview" aria-label="告知画像"></div>
   <div class="message-heading">
     <label class="message-label" for="social-message">SNS投稿文</label>
+    <button type="button" class="mobile-copy-message" aria-label="投稿文をコピー">コピー</button>
     <button type="button" class="select-message">投稿文を全選択</button>
   </div>
   <p id="post-manual-status" class="post-copy-status" role="status"></p>
@@ -106,4 +113,4 @@
     <button type="button" class="apply-poster-edit">反映する</button>
   </div>
 </dialog>
-<script type="module" src="app.js?v=post-copy-feedback-1"></script></body></html>
+<script type="module" src="app.js?v=portrait-ui-1"></script></body></html>

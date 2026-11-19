@@ -12,6 +12,8 @@ const message = dialog.querySelector('#social-message');
 const feedback = dialog.querySelector('.announce-feedback');
 const shuffle = dialog.querySelector('.shuffle');
 const copy = dialog.querySelector('.copy-message');
+const mobileCopy = dialog.querySelector('.mobile-copy-message');
+const jumpPoster = dialog.querySelector('.jump-poster');
 const postFeedback = dialog.querySelector('.post-copy-status');
 const postManualFeedback = dialog.querySelector('#post-manual-status');
 const copySkillPrompt = dialog.querySelector('.copy-skill-prompt');
@@ -305,6 +307,7 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
   if (promptPreview.open) refreshSkillPrompt();
   feedback.textContent = '告知画像を作成中…';
   clearPress();
+  jumpPoster.disabled = true;
   preview.replaceChildren();
   releaseDownload();
   editButton.disabled = shuffle.disabled = true;
@@ -340,6 +343,7 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
     }
     figure.append(pic);
     preview.replaceChildren(figure);
+    jumpPoster.disabled = false;
     lastDesign.set(key,design);
     feedback.textContent = photo ? '告知画像を作成しました。'
       : blank ? '写真枠を空欄にしました。' : '衣装に合う写真が見つかりませんでした。「写真を選ぶ」から差し替えられます。';
@@ -527,13 +531,19 @@ fileInput.addEventListener('change',() => {
   if (fileInput.files[0]) previewLocalPhoto(fileInput.files[0]);
 });
 
-dialog.querySelector('.view-message').addEventListener('click',() => {
+function jumpToMessage() {
   message.focus({preventScroll:true});
-  message.scrollIntoView({block:'start'});
+  dialog.querySelector('.message-heading').scrollIntoView({block:'start'});
+}
+dialog.querySelector('.view-message').addEventListener('click',jumpToMessage);
+dialog.querySelector('.jump-message').addEventListener('click',jumpToMessage);
+jumpPoster.addEventListener('click',() => {
+  preview.querySelector('.download-poster')?.focus({preventScroll:true});
+  preview.scrollIntoView({block:'start'});
 });
 function resetPostCopy() {
   postCopy.cancel();
-  copy.disabled = false;
+  copy.disabled = mobileCopy.disabled = false;
   postFeedback.textContent = '';
   postManualFeedback.textContent = '';
 }
@@ -559,17 +569,21 @@ function selectPostMessage() {
 }
 
 dialog.querySelector('.select-message').addEventListener('click',selectPostMessage);
-copy.addEventListener('click',async () => {
+async function copyPostMessage(clickEvent) {
+  const status = clickEvent.currentTarget === mobileCopy ? postManualFeedback : postFeedback;
   syncPostMessage(announcementFacts(event).text);
-  copy.disabled = true;
+  copy.disabled = mobileCopy.disabled = true;
+  postFeedback.textContent = '';
   postManualFeedback.textContent = '';
-  postFeedback.textContent = '投稿文をコピー中…';
+  status.textContent = '投稿文をコピー中…';
   const result = await postCopy.write(message.value);
   if (!result || !dialog.open) return;
-  copy.disabled = false;
+  copy.disabled = mobileCopy.disabled = false;
   if (result === 'manual') selectPostMessage();
-  else postFeedback.textContent = '投稿文をコピーしました。';
-});
+  else status.textContent = '投稿文をコピーしました。';
+}
+copy.addEventListener('click',copyPostMessage);
+mobileCopy.addEventListener('click',copyPostMessage);
 
 function refreshSkillPrompt() {
   const prompt = announcementSkillPrompt(event);
