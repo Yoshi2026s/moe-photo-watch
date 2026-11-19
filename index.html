@@ -2,7 +2,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/moe-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/moe-192.png">
-<link rel="stylesheet" href="style.css?v=manual-photo-preview-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
+<link rel="stylesheet" href="style.css?v=post-copy-feedback-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
 <fieldset id="event-view" class="view-picker">
   <legend>表示形式</legend>
   <div class="view-choices">
@@ -27,14 +27,19 @@
       <option value="story">縦長（9:16）</option><option value="feed">フィード（4:5）</option><option value="square">正方形（1:1）</option>
     </select></label>
   </div>
+  <p class="post-copy-status" role="status"></p>
   <div class="poster-pickers">
     <button type="button" class="choose-photo" aria-haspopup="dialog"><span>写真を選ぶ</span><small></small></button>
     <button type="button" class="choose-design" aria-haspopup="dialog"><span>デザインを選ぶ</span><small></small></button>
   </div>
   <p class="announce-feedback" role="status" aria-live="polite"></p>
   <div class="poster-preview" aria-label="告知画像"></div>
-  <label class="message-label" for="social-message">SNS投稿文</label>
-  <textarea id="social-message" rows="8" readonly></textarea>
+  <div class="message-heading">
+    <label class="message-label" for="social-message">SNS投稿文</label>
+    <button type="button" class="select-message">投稿文を全選択</button>
+  </div>
+  <p id="post-manual-status" class="post-copy-status" role="status"></p>
+  <textarea id="social-message" rows="8" readonly aria-describedby="post-manual-status"></textarea>
   <div class="design-tools">
     <button type="button" class="copy-skill-prompt">ChatGPTスキル用の依頼文をコピー</button>
   </div>
@@ -101,4 +106,4 @@
     <button type="button" class="apply-poster-edit">反映する</button>
   </div>
 </dialog>
-<script type="module" src="app.js?v=manual-photo-preview-1"></script></body></html>
+<script type="module" src="app.js?v=post-copy-feedback-1"></script></body></html>
