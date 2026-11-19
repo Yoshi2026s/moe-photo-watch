@@ -57,9 +57,7 @@
   .slot-status { grid-column: 3; grid-row: 1; }
 }
 
-.intake { display: grid; justify-items: start; gap: 2px; margin: 0 0 18px; }
-.intake a, .poster-preview a { display: inline-flex; min-height: 48px; align-items: center; color: #853959; font-weight: 700; }
-.intake small { color: #675660; }
+.poster-preview a { display: inline-flex; min-height: 48px; align-items: center; color: #853959; font-weight: 700; }
 .search-results { margin: 0 0 8px; color: #674e5c; font-size: .875rem; }
 .empty button { margin-top: 8px; }
 .make-announcement { width: 100%; margin-top: 10px; background: #fff5f8; }
