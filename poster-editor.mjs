@@ -4,6 +4,9 @@ import { backgroundPatterns } from './poster-patterns.mjs?v=photo-themes-1';
 
 const editor = document.querySelector('#poster-editor');
 const preview = editor.querySelector('.poster-edit-preview');
+const editControls = editor.querySelector('.poster-edit-controls');
+const editTabs = [...editor.querySelectorAll('[data-edit-tab]')];
+const cropTab = editTabs.find(button => button.dataset.editTab === 'crop');
 const palettes = editor.querySelector('.poster-palettes');
 const layout = editor.querySelector('#poster-layout');
 const lettering = editor.querySelector('#poster-lettering');
@@ -12,6 +15,7 @@ const typeSize = editor.querySelector('#poster-type-size');
 const pattern = editor.querySelector('#poster-pattern');
 const cropControls = editor.querySelector('.poster-crop');
 const ranges = [...cropControls.querySelectorAll('input[type=range]')];
+const rangeReadouts = new Map(ranges.map(range => [range.name,cropControls.querySelector('[data-crop-value="' + range.name + '"]')]));
 const fit = cropControls.querySelector('input[name=fit]');
 const defaultCrop = { zoom: 1, x: .5, y: .28, fit: false };
 let source, draft, crop, frame;
@@ -45,7 +49,21 @@ function reflectCrop() {
   for (const range of ranges) {
     range.value = crop[range.name];
     range.disabled = crop.fit;
+    showCropValue(range);
   }
+  editor.querySelector('.center-crop').disabled = crop.fit;
+}
+
+function showCropValue(range) {
+  const text = Math.round(range.valueAsNumber * 100) + '%';
+  rangeReadouts.get(range.name).textContent = text;
+  range.setAttribute('aria-valuetext',text);
+}
+
+function showEditSection(section) {
+  editor.dataset.editSection = section;
+  for (const button of editTabs) button.setAttribute('aria-pressed',String(button.dataset.editTab === section));
+  editControls.scrollTop = 0;
 }
 
 export function openPosterEditor(options) {
@@ -57,6 +75,9 @@ export function openPosterEditor(options) {
   pattern.value = draft.backgroundPattern || '';
   crop = { ...defaultCrop, ...options.crop };
   cropControls.disabled = !options.photo;
+  cropTab.disabled = !options.photo;
+  cropTab.title = options.photo ? '' : '写真を選ぶと調整できます';
+  showEditSection('layout');
   palettes.replaceChildren();
   draft.palettes.forEach((colors,index) => {
     const button = document.createElement('button');
@@ -89,9 +110,21 @@ fit.addEventListener('change',() => {
 for (const range of ranges) {
   range.addEventListener('input',() => {
     crop[range.name] = range.valueAsNumber;
+    showCropValue(range);
     drawPreview();
   });
 }
+for (const button of editTabs) button.addEventListener('click',() => showEditSection(button.dataset.editTab));
+editor.querySelector('.center-crop').addEventListener('click',() => {
+  crop.x = crop.y = .5;
+  reflectCrop();
+  drawPreview();
+});
+editor.querySelector('.reset-crop').addEventListener('click',() => {
+  crop = { ...defaultCrop };
+  reflectCrop();
+  drawPreview();
+});
 editor.querySelector('.reset-poster-edit').addEventListener('click',() => {
   lettering.value = '';
   typeface.value = '';

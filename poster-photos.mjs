@@ -28,6 +28,13 @@ export const posterPhotos = [
     : name.startsWith('gray') ? ['monochrome','night'] : ['light','pool'])
 }));
 
+export function filterPosterPhotos(photos, query, outfit) {
+  const normalize = value => value.normalize('NFKC').toLocaleLowerCase('ja');
+  const term = normalize(query.trim());
+  return photos.filter(photo =>
+    (!outfit || photo.outfits.includes(outfit)) && normalize(photo.label).includes(term));
+}
+
 export function rankPosterPhotos(photos, profile, previous, allowMismatch = false) {
   const { outfit, optionSwim, scene } = profile;
   const scored = photos.map(photo => {
