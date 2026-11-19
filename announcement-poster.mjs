@@ -2,6 +2,7 @@ import { drawReferenceDecor, referencePosterThemes } from './poster-reference-th
 import { drawLettering, posterLettering, ribbonColors } from './poster-lettering.mjs?v=poster-density-1';
 import { drawPosterPattern, posterPatternKey } from './poster-patterns.mjs?v=photo-themes-1';
 import { posterThemeProfile } from './poster-theme-profile.mjs';
+import { cropWindow } from './poster-crop.mjs?v=touch-crop-1';
 
 export const posterThemes = {
   champagne: { label:'シャンパンゴールド', frame:'deco', layout:'feature', pattern:'jewels', palettes:[
@@ -252,7 +253,7 @@ function motif(ctx, x, y, radius, key, color) {
   ctx.restore();
 }
 
-function portrait(ctx, photo, x, y, w, h, design, crop) {
+function portrait(ctx, photo, x, y, w, h, design, crop, onPhotoFrame) {
   const accent = design.colors[2];
   const radius = design.frame === 'round' || design.shape === 'round' ? 48 : 0;
   const outline = (left,top,width,height,corner) => {
@@ -282,9 +283,9 @@ function portrait(ctx, photo, x, y, w, h, design, crop) {
     ctx.fillRect(x,y,w,h);
     ctx.drawImage(photo,x+(w-fittedWidth)/2,y+(h-fittedHeight)/2,fittedWidth,fittedHeight);
   } else if (photo) {
-    const scale = Math.max(w / photo.naturalWidth, h / photo.naturalHeight) * (crop?.zoom || 1);
-    const sw = w / scale, sh = h / scale;
-    ctx.drawImage(photo, (photo.naturalWidth-sw)*(crop?.x ?? .5),(photo.naturalHeight-sh)*(crop?.y ?? .28),sw,sh,x,y,w,h);
+    onPhotoFrame?.({ x, y, width: w, height: h, transform: ctx.getTransform().inverse() });
+    const area = cropWindow(photo.naturalWidth,photo.naturalHeight,w,h,crop);
+    ctx.drawImage(photo,area.left,area.top,area.width,area.height,x,y,w,h);
   } else {
     ctx.strokeStyle = accent;
     ctx.setLineDash([9,10]);
@@ -423,7 +424,7 @@ function drawAnnouncementMessage(ctx, message, top, design) {
   ctx.restore();
 }
 
-export function renderPoster(facts, design, photo, format = 'story', { previewScale = 1, crop } = {}) {
+export function renderPoster(facts, design, photo, format = 'story', { previewScale = 1, crop, onPhotoFrame } = {}) {
   const story = format === 'story';
   const square = format === 'square';
   const H = story ? 1920 : square ? 1080 : 1350;
@@ -539,7 +540,7 @@ export function renderPoster(facts, design, photo, format = 'story', { previewSc
   if (stacked) ctx.textAlign = 'center';
   heading.forEach((line,index) => drawLettering(ctx,line,stacked ? W/2 : 62,titleY+index*(size+12),size,lettering));
   ctx.textAlign = 'left';
-  portrait(ctx,photo,px,top,pw,ph,design,crop);
+  portrait(ctx,photo,px,top,pw,ph,design,crop,onPhotoFrame);
   motif(ctx,stacked ? (heroTime ? W/2 : W/2+185) : tx+tw-28,infoTop+32,22,design.key,accent);
   ctx.fillStyle = ink;
   ctx.font = '600 32px ' + sans;

@@ -236,7 +236,7 @@ function eventCard(item, today, past, compact = false) {
   make.addEventListener('click', async () => {
     make.disabled = true;
     try {
-      const { openAnnouncement } = await import('./announcement-ui.mjs?v=portrait-editor-1');
+      const { openAnnouncement } = await import('./announcement-ui.mjs?v=touch-crop-1');
       openAnnouncement(item);
     } catch {
       make.textContent = '告知画面を再読み込み';

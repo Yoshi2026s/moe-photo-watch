@@ -1,9 +1,11 @@
-import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=photo-themes-1';
+import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=touch-crop-1';
 import { letteringOptions } from './poster-lettering.mjs?v=poster-density-1';
 import { backgroundPatterns } from './poster-patterns.mjs?v=photo-themes-1';
+import { cropFromGesture, defaultCrop } from './poster-crop.mjs?v=touch-crop-1';
 
 const editor = document.querySelector('#poster-editor');
 const preview = editor.querySelector('.poster-edit-preview');
+const canvasMount = preview.querySelector('.poster-edit-canvas');
 const editControls = editor.querySelector('.poster-edit-controls');
 const editTabs = [...editor.querySelectorAll('[data-edit-tab]')];
 const cropTab = editTabs.find(button => button.dataset.editTab === 'crop');
@@ -17,8 +19,9 @@ const cropControls = editor.querySelector('.poster-crop');
 const ranges = [...cropControls.querySelectorAll('input[type=range]')];
 const rangeReadouts = new Map(ranges.map(range => [range.name,cropControls.querySelector('[data-crop-value="' + range.name + '"]')]));
 const fit = cropControls.querySelector('input[name=fit]');
-const defaultCrop = { zoom: 1, x: .5, y: .28, fit: false };
-let source, draft, crop, frame;
+const portraitScreen = matchMedia('(max-width: 600px) and (orientation: portrait)');
+const contacts = new Map();
+let source, draft, crop, frame, photoFrame, gesture;
 
 for (const [key, name] of Object.entries(posterLayouts)) layout.add(new Option(name, key));
 for (const [key, name] of Object.entries(letteringOptions)) lettering.add(new Option(name,key));
@@ -28,13 +31,94 @@ function drawPreview() {
   cancelAnimationFrame(frame);
   frame = requestAnimationFrame(() => {
     if (!editor.open) return;
-    const image = renderPoster(source.facts,draft,source.photo,source.format,{ previewScale: .3, crop });
+    photoFrame = null;
+    const image = renderPoster(source.facts,draft,source.photo,source.format,{
+      previewScale: .3, crop, onPhotoFrame: geometry => { photoFrame = geometry; }
+    });
     image.setAttribute('aria-hidden','true');
-    preview.replaceChildren(image);
+    canvasMount.replaceChildren(image);
+    updateGestureAvailability();
   });
 }
 
+function updateGestureAvailability() {
+  preview.toggleAttribute('data-crop-gesture',Boolean(
+    window.PointerEvent && editor.open && portraitScreen.matches &&
+    editor.dataset.editSection === 'crop' && photoFrame && !crop.fit
+  ));
+}
+
+function stopGesture() {
+  const captured = [...contacts.keys()];
+  contacts.clear();
+  gesture = null;
+  for (const id of captured) {
+    if (preview.hasPointerCapture(id)) preview.releasePointerCapture(id);
+  }
+}
+
+function rebaseGesture() {
+  gesture = null;
+  if (!contacts.size) return;
+  const canvas = canvasMount.firstElementChild;
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) {
+    stopGesture();
+    return;
+  }
+  const { x, y, width, height, transform } = photoFrame;
+  const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+  const toPhoto = point => {
+    const local = transform.transformPoint({
+      x: (point.x - rect.left) * scaleX, y: (point.y - rect.top) * scaleY
+    });
+    return { x: local.x - x, y: local.y - y };
+  };
+  const { naturalWidth: sourceWidth, naturalHeight: sourceHeight } = source.photo;
+  gesture = { crop: { ...crop }, geometry: { sourceWidth, sourceHeight, width, height },
+    start: [...contacts.values()].map(toPhoto), toPhoto };
+}
+
+preview.addEventListener('pointerdown',event => {
+  if (event.pointerType !== 'touch' || contacts.size >= 2 ||
+      !preview.hasAttribute('data-crop-gesture')) return;
+  contacts.set(event.pointerId,{ x: event.clientX, y: event.clientY });
+  preview.setPointerCapture(event.pointerId);
+  rebaseGesture();
+});
+
+preview.addEventListener('pointermove',event => {
+  if (!gesture || !contacts.has(event.pointerId)) return;
+  contacts.set(event.pointerId,{ x: event.clientX, y: event.clientY });
+  const { geometry, start, toPhoto } = gesture;
+  const next = cropFromGesture(gesture.crop,geometry,start,[...contacts.values()].map(toPhoto));
+  if (next.zoom === crop.zoom && next.x === crop.x && next.y === crop.y) return;
+  crop = next;
+  reflectCrop();
+  drawPreview();
+});
+
+function endContact(event) {
+  if (contacts.delete(event.pointerId)) rebaseGesture();
+}
+
+preview.addEventListener('pointerup',endContact);
+preview.addEventListener('pointercancel',endContact);
+preview.addEventListener('lostpointercapture',event => {
+  if (event.target === preview) endContact(event);
+});
+window.addEventListener('blur',stopGesture);
+window.addEventListener('resize',stopGesture);
+document.addEventListener('visibilitychange',() => {
+  if (document.hidden) stopGesture();
+});
+portraitScreen.addEventListener('change',() => {
+  stopGesture();
+  updateGestureAvailability();
+});
+
 function setVariant(palette, left, positioning) {
+  stopGesture();
   draft = { ...posterVariant(draft.key,palette,left,positioning), lettering: lettering.value,
     typeface: typeface.value, typeSize: typeSize.value, backgroundPattern: pattern.value };
   for (const [index, button] of [...palettes.children].entries()) {
@@ -52,6 +136,7 @@ function reflectCrop() {
     showCropValue(range);
   }
   editor.querySelector('.center-crop').disabled = crop.fit;
+  updateGestureAvailability();
 }
 
 function showCropValue(range) {
@@ -61,9 +146,11 @@ function showCropValue(range) {
 }
 
 function showEditSection(section) {
+  stopGesture();
   editor.dataset.editSection = section;
   for (const button of editTabs) button.setAttribute('aria-pressed',String(button.dataset.editTab === section));
   editControls.scrollTop = 0;
+  updateGestureAvailability();
 }
 
 export function openPosterEditor(options) {
@@ -103,12 +190,15 @@ for (const control of [lettering,typeface,typeSize,pattern]) {
 }
 editor.querySelector('.flip-poster').addEventListener('click',() => setVariant(draft.palette,!draft.left,draft.layout));
 fit.addEventListener('change',() => {
+  stopGesture();
   crop.fit = fit.checked;
+  if (crop.fit) photoFrame = null;
   reflectCrop();
   drawPreview();
 });
 for (const range of ranges) {
   range.addEventListener('input',() => {
+    stopGesture();
     crop[range.name] = range.valueAsNumber;
     showCropValue(range);
     drawPreview();
@@ -116,11 +206,13 @@ for (const range of ranges) {
 }
 for (const button of editTabs) button.addEventListener('click',() => showEditSection(button.dataset.editTab));
 editor.querySelector('.center-crop').addEventListener('click',() => {
+  stopGesture();
   crop.x = crop.y = .5;
   reflectCrop();
   drawPreview();
 });
 editor.querySelector('.reset-crop').addEventListener('click',() => {
+  stopGesture();
   crop = { ...defaultCrop };
   reflectCrop();
   drawPreview();
@@ -142,7 +234,9 @@ editor.querySelector('.apply-poster-edit').addEventListener('click',() => {
 });
 editor.addEventListener('close',() => {
   if (editor.open) return;
+  stopGesture();
   cancelAnimationFrame(frame);
-  preview.replaceChildren();
-  source = draft = crop = null;
+  canvasMount.replaceChildren();
+  source = draft = crop = photoFrame = null;
+  updateGestureAvailability();
 });
