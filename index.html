@@ -2,7 +2,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/moe-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/moe-192.png">
-<link rel="stylesheet" href="style.css?v=manual-photos-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
+<link rel="stylesheet" href="style.css?v=manual-photo-preview-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
 <fieldset id="event-view" class="view-picker">
   <legend>表示形式</legend>
   <div class="view-choices">
@@ -51,9 +51,18 @@
     <button type="button" class="auto-choice">おまかせで選ぶ</button>
     <label class="format-label theme-filter" hidden>雰囲気<select></select></label>
     <button type="button" class="blank-photo">写真枠を空欄にする</button>
-    <label class="upload-photo">端末の写真<input type="file" accept="image/jpeg,image/png,image/webp"></label>
+    <label class="upload-photo">端末の写真<input type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" aria-describedby="upload-photo-formats"></label>
   </div>
+  <p id="upload-photo-formats" class="upload-photo-formats" hidden>JPEG・PNG・WebP、1枚12MBまで</p>
   <p class="poster-picker-status" role="status" hidden></p>
+  <section class="local-photo-preview" aria-label="選んだ写真の確認" hidden>
+    <div class="local-photo-image"></div>
+    <p class="local-photo-name"></p>
+    <div class="local-photo-actions">
+      <button type="button" class="use-local-photo">この写真を使う</button>
+      <button type="button" class="cancel-local-photo">取り消す</button>
+    </div>
+  </section>
   <div class="photo-filters" hidden>
     <label>写真を検索<input type="search" class="photo-query" placeholder="写真名やファイル名"></label>
   </div>
@@ -92,4 +101,4 @@
     <button type="button" class="apply-poster-edit">反映する</button>
   </div>
 </dialog>
-<script type="module" src="app.js?v=manual-photos-1"></script></body></html>
+<script type="module" src="app.js?v=manual-photo-preview-1"></script></body></html>

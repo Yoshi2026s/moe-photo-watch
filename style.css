@@ -89,6 +89,12 @@ body:has(dialog[open]) { overflow: hidden; }
 .upload-photo { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; max-width: 100%; font-size: .875rem; }
 .upload-photo input { min-width: 0; max-width: 100%; min-height: 48px; font: inherit; }
 .upload-photo input::file-selector-button { min-height: 48px; font: inherit; }
+.upload-photo-formats { margin-bottom: 8px; color: #674e5c; font-size: .875rem; }
+.local-photo-preview { margin: 0 0 14px; padding: 12px; border: 1px solid #dfc3d1; border-radius: 12px; background: #fff6fa; }
+.local-photo-image img { display: block; width: 100%; height: auto; max-height: min(34dvh,300px); object-fit: contain; }
+.local-photo-name { margin-block: 8px; color: #674e5c; overflow-wrap: anywhere; }
+.local-photo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.use-local-photo { background: #843b60; color: white; }
 .poster-picker-status { margin-bottom: 8px; color: #674e5c; }
 .photo-filters:not([hidden]) { display: grid; grid-template-columns: minmax(0,1fr); }
 .photo-filters label { display: grid; font-size: .875rem; font-weight: 700; }

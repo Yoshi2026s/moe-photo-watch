@@ -3,6 +3,7 @@ import { announcementFacts, announcementSkillPrompt } from './announcement-facts
 import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './announcement-poster.mjs?v=photo-themes-1';
 import { openPosterEditor } from './poster-editor.mjs?v=photo-themes-1';
 import { posterPhotos, rankPosterPhotos } from './poster-photos.mjs?v=photo-themes-1';
+import { photoInputError } from './manual-photo.mjs';
 
 const dialog = document.querySelector('#announcement');
 const preview = dialog.querySelector('.poster-preview');
@@ -25,13 +26,18 @@ const themeFilter = picker.querySelector('.theme-filter select');
 const pickerStatus = picker.querySelector('.poster-picker-status');
 const blankButton = picker.querySelector('.blank-photo');
 const fileInput = picker.querySelector('.upload-photo input');
+const fileFormats = picker.querySelector('#upload-photo-formats');
+const localPreview = picker.querySelector('.local-photo-preview');
+const localPhotoImage = picker.querySelector('.local-photo-image');
+const localPhotoName = picker.querySelector('.local-photo-name');
+const applyLocalPhoto = picker.querySelector('.use-local-photo');
 const photoFilters = picker.querySelector('.photo-filters');
 const photoQuery = picker.querySelector('.photo-query');
 const photoResults = picker.querySelector('.photo-results');
 const morePhotos = picker.querySelector('.more-photos');
 const photoPageSize = 24;
 const lastDesign = new Map();
-let event, request = 0, uploaded = null, blank = false, previousPhoto = '', downloadUrl = '';
+let event, request = 0, uploaded = null, uploadedName = '', pendingPhoto, blank = false, previousPhoto = '', downloadUrl = '';
 const posterFiles = new WeakMap();
 let displayedText = '', design, photoChoice, crop;
 let press, saveMenuTimer;
@@ -41,6 +47,7 @@ const photoSources = new WeakMap();
 let recommendedPhotos;
 let photoLimit = photoPageSize;
 let designPreviewObserver;
+let localPreviewUrl = '';
 
 themeFilter.add(new Option('すべて',''));
 for (const group of Object.keys(posterThemeGroups)) themeFilter.add(new Option(group,group));
@@ -138,13 +145,6 @@ async function loadPhoto(url) {
   return image;
 }
 
-async function loadMaterialPhoto(file) {
-  const url = URL.createObjectURL(file);
-  try {
-    return await loadPhoto(url);
-  } finally { URL.revokeObjectURL(url); }
-}
-
 async function choosePhoto(facts) {
   if (blank || uploaded) return uploaded;
   const selected = posterPhotos.find(photo => photo.src === selectedPhoto);
@@ -223,10 +223,12 @@ async function openPicker(mode) {
   pickerMode = mode;
   pickerHeading.textContent = mode === 'photo' ? '写真を選ぶ' : 'デザインを選ぶ';
   blankButton.hidden = fileInput.parentElement.hidden = mode !== 'photo';
+  fileFormats.hidden = mode !== 'photo';
   themeFilter.parentElement.hidden = mode === 'photo';
   photoFilters.hidden = photoResults.hidden = mode !== 'photo';
   morePhotos.hidden = true;
   clearThumbnails();
+  resetLocalPreview();
   showPickerStatus('');
   picker.showModal();
   picker.scrollTop = 0;
@@ -306,7 +308,7 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
     if (id !== request) return;
     const reference = photo && photoSources.get(photo);
     previousPhoto = reference?.src || '';
-    choosePhotoButton.querySelector('small').textContent = reference?.label || (photo ? '端末の写真' : '空欄');
+    choosePhotoButton.querySelector('small').textContent = reference?.label || (photo ? (uploadedName || '端末の写真') : '空欄');
     const canvas = renderPoster(facts,design,photo,format.value,{ crop });
     const blob = await new Promise((resolve,reject) =>
       canvas.toBlob(output => output ? resolve(output) : reject(new Error('PNG')), 'image/png'));
@@ -351,6 +353,7 @@ export function openAnnouncement(item) {
   skillPrompt.value = '';
   skillFeedback.textContent = '';
   uploaded = null;
+  uploadedName = '';
   blank = false;
   fileInput.value = '';
   selectedPhoto = '';
@@ -382,6 +385,7 @@ picker.addEventListener('close',() => {
   if (!picker.open) {
     pickerRequest++;
     clearThumbnails();
+    resetLocalPreview();
   }
 });
 format.addEventListener('change',() => generate());
@@ -392,6 +396,7 @@ dialog.addEventListener('close',() => {
   request++;
   photoChoice = null;
   uploaded = null;
+  uploadedName = '';
   preview.replaceChildren();
   releaseDownload();
 });
@@ -436,6 +441,7 @@ blankButton.addEventListener('click',() => {
   picker.close();
   blank = true;
   uploaded = null;
+  uploadedName = '';
   fileInput.value = '';
   generate({ newPhoto: true });
 });
@@ -443,6 +449,7 @@ function useReferencePhoto(src = '') {
   selectedPhoto = src;
   blank = false;
   uploaded = null;
+  uploadedName = '';
   fileInput.value = '';
   generate({ newPhoto: true });
 }
@@ -454,31 +461,62 @@ picker.querySelector('.auto-choice').addEventListener('click',() => {
     generate({ newDesign: true });
   }
 });
-async function useLocalPhoto(file) {
-  if (!['image/jpeg','image/png','image/webp'].includes(file.type) || !file.size || file.size > 12*1024*1024) {
-    showPickerStatus('12MB以内のJPEG・PNG・WebP画像を選んでください。');
-    fileInput.value = '';
+function resetLocalPreview() {
+  pendingPhoto = null;
+  localPreview.hidden = true;
+  localPhotoImage.replaceChildren();
+  if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
+  localPreviewUrl = '';
+  localPhotoName.textContent = '';
+  fileInput.value = '';
+}
+
+async function previewLocalPhoto(file) {
+  const id = ++pickerRequest;
+  resetLocalPreview();
+  const validation = photoInputError(file);
+  if (validation) {
+    showPickerStatus(validation);
     return;
   }
-  const id = ++pickerRequest;
   showPickerStatus('写真を読み込み中…');
+  const url = URL.createObjectURL(file);
   try {
-    const image = await loadMaterialPhoto(file);
-    if (id !== pickerRequest || !picker.open) return;
-    uploaded = image;
-    blank = false;
+    const image = await loadPhoto(url);
+    if (id !== pickerRequest || !picker.open || !dialog.open) return;
+    localPreviewUrl = url;
+    pendingPhoto = { image, name:file.name };
+    image.alt = '選んだ写真のプレビュー';
+    localPhotoImage.replaceChildren(image);
+    localPhotoName.textContent = file.name;
+    localPreview.hidden = false;
+    showPickerStatus('');
+    applyLocalPhoto.focus({preventScroll:true});
+    localPreview.scrollIntoView({block:'nearest'});
   } catch {
     if (id === pickerRequest && picker.open) {
       showPickerStatus('写真を読み込めませんでした。別の写真を選んでください。');
-      fileInput.value = '';
     }
-    return;
+  } finally {
+    if (localPreviewUrl !== url) URL.revokeObjectURL(url);
   }
+}
+applyLocalPhoto.addEventListener('click',() => {
+  if (!pendingPhoto || !picker.open || !dialog.open) return;
+  uploaded = pendingPhoto.image;
+  uploadedName = pendingPhoto.name;
+  blank = false;
   picker.close();
   generate({ newPhoto: true });
-}
+});
+picker.querySelector('.cancel-local-photo').addEventListener('click',() => {
+  pickerRequest++;
+  resetLocalPreview();
+  showPickerStatus('');
+  fileInput.focus();
+});
 fileInput.addEventListener('change',() => {
-  if (fileInput.files[0]) useLocalPhoto(fileInput.files[0]);
+  if (fileInput.files[0]) previewLocalPhoto(fileInput.files[0]);
 });
 
 dialog.querySelector('.view-message').addEventListener('click',() => {
