@@ -1,4 +1,4 @@
-import { bookingState, jstTime, nextBookingChange, slotBadge, slotConfirmation, unavailableSlotsSummary } from './reservation.mjs?v=gallery-1';
+import { bookingState, jstTime, nextBookingChange, slotBadge, unavailableSlotsSummary } from './reservation.mjs?v=automatic-photos-1';
 import { dayParts } from './event-date.mjs';
 import { element, makeCalendar } from './event-calendar.mjs?v=full-booking-2';
 const events = document.querySelector('#events'), updated = document.querySelector('#updated'), refresh = document.querySelector('#refresh');
@@ -10,7 +10,7 @@ const detailDialog = document.querySelector('#event-detail');
 const detailBody = detailDialog.querySelector('.detail-body');
 const viewKey = 'moe-photo-watch.eventView';
 let snapshot, detailItem, clockTimer, nextBoundary = Infinity;
-let hasData = false, lastConfirmation = '';
+let hasData = false;
 function safeUrl(s) { try { const u = new URL(s); return u.protocol === 'https:' ? u.href : null; } catch { return null; } }
 function todayJst() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
 function dateKey(date) {
@@ -90,7 +90,6 @@ function renderSlots(valid, record, item) {
     section.append(element('p', '枠ごとの情報は未確認です。'));
     return section;
   }
-  section.append(element('p', '予約枠の最終確認：' + slotConfirmation(item), 'meta slot-confirmation'));
   const list = element('ul', '', 'slot-list');
   const ordered = valid.map(slot => {
     const time = typeof slot.time === 'string' ? slot.time.trim() : '';
@@ -129,7 +128,6 @@ function show(data) {
   });
   list.sort((a, b) => (past ? -1 : 1) * dateKey(a.date).localeCompare(dateKey(b.date)));
   events.replaceChildren();
-  updated.textContent = data.updated_at ? '掲載情報の確認：' + data.updated_at + '（日本時間）' : '掲載情報の確認：未確認';
   if (terms.length) events.append(element('p', '検索結果 ' + list.length + '件', 'search-results'));
   if (!list.length) {
     const box = element('div', '', 'empty');
@@ -148,7 +146,7 @@ function show(data) {
     return;
   }
   const mode = viewPicker.querySelector('input:checked').value;
-  const makeCard = item => eventCard(item, today, past, mode === 'compact');
+  const makeCard = item => eventCard(item, today, mode === 'compact');
   if (mode === 'calendar') {
     events.append(makeCalendar(list, today, makeCard, isFullyBooked));
   } else {
@@ -157,9 +155,8 @@ function show(data) {
     events.append(container);
   }
 }
-function eventCard(item, today, past, compact = false) {
+function eventCard(item, today, compact = false) {
   const isToday = dateKey(item.date) === today;
-  const checked = jstTime(item.checked_at);
   const card = element('article', '', compact ? 'card compact-card' : 'card');
   const state = bookingState(item);
   const slots = state.slotMode === 'omit' ? [] : validSlots(item.slots);
@@ -182,14 +179,13 @@ function eventCard(item, today, past, compact = false) {
   }
   card.append(element('p', '会場：' + (item.venue || '未確認')));
   if (compact) {
-    if (slots.length) card.append(element('p', '予約枠の最終確認：' + slotConfirmation(item), 'meta slot-confirmation'));
     const open = element('button', '詳細を見る', 'open-details');
     open.type = 'button';
     open.setAttribute('aria-label', (item.title || '撮影会') + 'の詳細を見る');
     open.setAttribute('aria-haspopup', 'dialog');
     open.addEventListener('click', () => {
       detailItem = item;
-      detailBody.replaceChildren(eventCard(item, today, past));
+      detailBody.replaceChildren(eventCard(item, today));
       detailDialog.showModal();
       detailDialog.scrollTop = 0;
     });
@@ -201,42 +197,20 @@ function eventCard(item, today, past, compact = false) {
   }
   const details = cardDetails(item.details, slots);
   if (details) card.append(element('p', '補足：' + details));
-  card.append(element('p', '確認日時：' + (item.checked_at || '未確認') + (item.checked_at ? '（日本時間）' : ''), 'meta'));
-  if (!past && Number.isFinite(checked) && Date.now() - checked >= 86400000) {
-    card.append(element('p', '確認から24時間以上経過', 'meta stale'));
-  }
   const url = safeUrl(item.url);
-  if (!url) card.append(element('p', '主催者ページ：未確認', 'meta'));
   if (url) {
-    const isPost = Array.isArray(item.sources) && item.sources.some(source => source?.kind === 'official_post' && safeUrl(source.url) === url);
-    const a = element('a', isPost ? '公式投稿 ↗' : '主催者の詳細ページ ↗', 'official');
+    const a = element('a', '開催・参加案内 ↗', 'official');
     a.href = url;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     card.append(a);
-  }
-  const posts = new Set((Array.isArray(item.sources) ? item.sources : [])
-    .filter(source => source?.kind === 'official_post')
-    .map(source => safeUrl(source.url))
-    .filter(post => post && post !== url));
-  if (posts.size) {
-    const links = element('div', '', 'links source-posts');
-    for (const post of posts) {
-      const host = new URL(post).hostname.replace(/^www\./, '');
-      const link = element('a', '公式投稿 (' + host + ') ↗');
-      link.href = post;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      links.append(link);
-    }
-    card.append(links);
   }
   const make = element('button', 'SNS告知を作る', 'make-announcement');
   make.type = 'button';
   make.addEventListener('click', async () => {
     make.disabled = true;
     try {
-      const { openAnnouncement } = await import('./announcement-ui.mjs?v=3cc61b124dc17cca');
+      const { openAnnouncement } = await import('./announcement-ui.mjs?v=3748a2e8e257d66e');
       openAnnouncement(item);
     } catch {
       make.textContent = '告知画面を再読み込み';
@@ -249,15 +223,27 @@ function eventCard(item, today, past, compact = false) {
 }
 async function load() {
   refresh.disabled = true;
-  try { const r = await fetch('data/events.json', { cache: 'no-store' }); if (!r.ok) throw Error('HTTP ' + r.status); const data = await r.json(); show(data); snapshot = data; scheduleBoundary(); filters.hidden = false; hasData = true; lastConfirmation = updated.textContent; }
-  catch { if (!hasData) { events.replaceChildren(element('div', '情報を読み込めませんでした。「再読み込み」をお試しください。', 'empty')); updated.textContent = '掲載情報の確認：未確認'; } else { updated.textContent = lastConfirmation + '　再読み込みに失敗しました。前回の情報を表示しています。'; } }
+  try {
+    const response = await fetch('data/events.json', { cache: 'no-store' });
+    if (!response.ok) throw Error('HTTP ' + response.status);
+    const data = await response.json();
+    show(data);
+    snapshot = data;
+    scheduleBoundary();
+    filters.hidden = false;
+    hasData = true;
+    updated.textContent = '';
+  } catch {
+    if (!hasData) {
+      events.replaceChildren(element('div', '情報を読み込めませんでした。「再読み込み」をお試しください。', 'empty'));
+      updated.textContent = '';
+    } else updated.textContent = '再読み込みに失敗しました。前回の情報を表示しています。';
+  }
   finally { refresh.disabled = false; }
 }
 function applyFilters() {
   if (!snapshot) return;
-  const message = updated.textContent;
   show(snapshot);
-  updated.textContent = message;
 }
 function scheduleBoundary() {
   clearTimeout(clockTimer);
@@ -265,9 +251,7 @@ function scheduleBoundary() {
   const today = todayJst().replaceAll('-', '/');
   nextBoundary = jstTime(today + ' 00:00') + 86400000;
   for (const item of snapshot.events) {
-    for (const at of [nextBookingChange(item, now), jstTime(item.checked_at) + 86400000]) {
-      if (at > now && at < nextBoundary) nextBoundary = at;
-    }
+    nextBoundary = Math.min(nextBoundary,nextBookingChange(item, now));
   }
   clockTimer = setTimeout(refreshForTime, Math.max(0, nextBoundary - now) + 1);
 }
@@ -276,7 +260,7 @@ function refreshForTime() {
   const today = todayJst();
   applyFilters();
   if (detailDialog.open && detailItem) {
-    detailBody.replaceChildren(eventCard(detailItem, today, dateKey(detailItem.date) < today));
+    detailBody.replaceChildren(eventCard(detailItem, today));
   }
   scheduleBoundary();
 }

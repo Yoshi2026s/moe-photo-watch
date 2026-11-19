@@ -20,7 +20,7 @@ export function slotBadge(value, eventKind) {
   if (/^(?:空き|空きあり|予約可|予約可能|予約受付中|○|〇|◯)$/.test(status)) return { label: '空き', variant: 'available' };
   if (/^(?:予約済み?|満枠|満席|完売|sold\s*out(?:\s*\(満枠\))?)$/i.test(status)) return { label: '予約済', variant: 'unavailable' };
   if (/^×(?:\(公式表示\))?$/.test(status)) {
-    return { label: !eventKind || eventKind === 'individual_photo' ? '予約済' : '×（公式表示）', variant: 'unavailable' };
+    return { label: !eventKind || eventKind === 'individual_photo' ? '予約済' : '×', variant: 'unavailable' };
   }
   if (/^(?:予約不可|受付終了|予約受付終了|キャンセル待ち)$/.test(status)) return { label: status, variant: 'unavailable' };
   return { label: '未確認', variant: 'unknown' };

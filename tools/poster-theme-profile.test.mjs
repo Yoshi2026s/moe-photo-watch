@@ -2,9 +2,31 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync } from 'node:fs';
 import { posterThemeProfile } from '../poster-theme-profile.mjs';
-import { filterPosterPhotos, rankPosterPhotos, posterPhotos } from '../poster-photos.mjs';
+import { filterPosterPhotos, loadPosterSelection, rankPosterPhotos, posterPhotos } from '../poster-photos.mjs';
 import { announcementFacts } from '../announcement-facts.mjs';
 import { nextDesign } from '../announcement-poster.mjs';
+
+test('自動選択は1枚か2枚を選び、手動で1枚選んだ場合は増やさない', async () => {
+  const candidates = posterPhotos.slice(0,3);
+  const load = async photo => photo.src;
+  const sources = candidates.map(photo => photo.src);
+  assert.deepEqual(await loadPosterSelection(candidates,load,{ auto:true, random:() => .5 }),sources.slice(0,1));
+  assert.deepEqual(await loadPosterSelection(candidates,load,{ auto:true, random:() => 0 }),sources.slice(0,2));
+  assert.deepEqual(await loadPosterSelection(candidates,load,{ random:() => 0 }),sources.slice(0,1));
+});
+
+test('読み込める異なる候補が2枚未満なら、残りの写真だけで作る', async () => {
+  const [first,missing,last] = posterPhotos;
+  const load = async photo => {
+    if (photo.src === missing.src) throw new Error('Not found');
+    return photo.src;
+  };
+  const options = { auto:true, random:() => 0 };
+  assert.deepEqual(await loadPosterSelection([first,first,missing,last],load,options),[first.src,last.src]);
+  assert.deepEqual(await loadPosterSelection([first,missing],load,options),[first.src]);
+  assert.deepEqual(await loadPosterSelection([missing],load,options),[]);
+  assert.deepEqual(await loadPosterSelection([],load,options),[]);
+});
 
 test('掲載写真を名前と衣装の両方で絞り込み、解除で元の候補を表示する', () => {
   const originalGallery = posterPhotos.filter(photo=>!photo.name.startsWith('chat-'));

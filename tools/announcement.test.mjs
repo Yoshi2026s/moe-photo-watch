@@ -10,17 +10,16 @@ const event = {title:'撮影会',date:'2026/11/21',checked_at:'2026/11/17 12:30'
   slots:[{label:'第2部',time:'15:00〜16:00',status:'予約不可'},{label:'第1部',time:'13:00〜14:00',status:'未確認'}]};
 const at = time => Date.parse(time + '+09:00');
 
-test('告知依頼文が対象回の情報・制作指定・2つのリンクを引き継ぐ', () => {
+test('告知依頼文は対象回・制作指定・本人リンクを引き継ぎ、出典URLを載せない', () => {
   const url = 'https://example.org/event/21';
   const post = 'https://example.org/performer/post/5';
   const item = {...event,url:post,sources:[{kind:'official_post',url:post},{kind:'official_page',url}]};
   const prompt = announcementSkillPrompt(item,at('2026-11-18T12:00'));
   for (const part of ['create-moe-photo-announcements','本人の写真','9:16','11月21日（土）',item.title,
-    '主催者の公式案内\n' + url,'開催情報の掲載元\n' + post,'https://lit.link/nowan_moe0121']) assert.ok(prompt.includes(part),part);
+    'https://lit.link/nowan_moe0121','確認日時、出典']) assert.ok(prompt.includes(part),part);
+  assert.doesNotMatch(prompt,/example\.org|最終確認|情報確認|開催情報の掲載元/);
   const postOnly = announcementSkillPrompt({...item,sources:[{kind:'official_post',url:post}]});
-  assert.ok(postOnly.includes('開催情報の掲載元\n' + post));
-  assert.doesNotMatch(postOnly,/主催者の公式案内\n/);
-  assert.match(postOnly,/主催者の開催ページはサイト掲載情報では未確認/);
+  assert.doesNotMatch(postOnly,/example\.org|開催情報の掲載元/);
 });
 
 test('日本時間の受付開始・締切ちょうどで表示を切り替える', () => {
@@ -40,11 +39,11 @@ test('過去・公式締切・予約不要・中止・全枠不可を区別す�
   const full = text('2枠とも×・予約不可',{slots:event.slots.map(s=>({...s,status:'予約不可'}))});
   assert.doesNotMatch(full,/受付終了|満枠|予約済み/);
 });
-test('料金・日付・全枠・確認日時を保ち、未確認の詳細やURLを補わない', () => {
+test('料金・日付・全枠を保ち、未確認の詳細やURLを補わない', () => {
   const facts = announcementFacts({...event,url:'javascript:alert(1)'},at('2026-11-18T14:00'));
-  for (const part of ['11月21日（土）','会場代1,000円','水着＋5,000円','第1部　13:00〜14:00　未確認','第2部　15:00〜16:00　予約不可','2026/11/17 12:30']) assert.ok(facts.text.includes(part),part);
+  for (const part of ['11月21日（土）','会場代1,000円','水着＋5,000円','第1部　13:00〜14:00　未確認','第2部　15:00〜16:00　予約不可']) assert.ok(facts.text.includes(part),part);
   assert.ok(facts.text.indexOf('第1部') < facts.text.indexOf('第2部'));
-  assert.equal(facts.source,'');
+  assert.doesNotMatch(facts.text,/javascript:|2026\/11\/17 12:30/);
   assert.doesNotMatch(announcementFacts({title:'予定',date:'2026/02/31',booking_opens_at:'2026/02/31 20:00'}).text,/月31日|受付開始|無料/);
   let design;
   for (let i=0; i<16; i++) {
@@ -64,13 +63,13 @@ test('×・満席・締切の根拠を区別し、予約不要の予定には古
   for (const status of ['予約受付終了','満席','キャンセル待ち','開催中止']) {
     const data = {...event,status,slots};
     assert.equal(bookingState(data,now).slotMode,'record');
-    assert.match(announcementFacts(data,now).text,/予約枠（記録）】\n最終確認：2026\/11\/17 12:30（日本時間）/);
+    assert.match(announcementFacts(data,now).text,/予約枠（記録）】\n第1部　時間未確認　空き/);
     assert.doesNotMatch(announcementFacts(data,now).banner,/空き/);
   }
   const free = announcementFacts({...event,status:'予約不要',slots,url:'https://example.org/events/1'},now);
   assert.equal(free.banner,'予約不要');
   assert.doesNotMatch(free.text,/予約枠|第1部|空き/);
-  assert.match(free.text,/\nhttps:\/\/example.org\/events\/1\n/);
+  assert.doesNotMatch(free.text,/example\.org/);
   assert.match(free.text,/\nhttps:\/\/lit.link\/nowan_moe0121\n/);
   assert.equal(bookingState({date:'2026/11/17',status:'未確認'},now).label,'開催日経過');
   assert.equal(bookingState({...event,status:'予約不要？'},now).label,'');
@@ -83,7 +82,7 @@ test('埋まった枠は予約済と表記し、個別の予約とイベント�
     assert.deepEqual(slotBadge(raw), {label:'予約済',variant:'unavailable'});
   }
   assert.equal(slotBadge('×（公式表示）', 'individual_photo').label, '予約済');
-  assert.equal(slotBadge('×（公式表示）', 'group_photo').label, '×（公式表示）');
+  assert.equal(slotBadge('×（公式表示）', 'group_photo').label, '×');
   const slots = event.slots.map(slot => ({...slot,status:'×（公式表示）'}));
   const full = announcementFacts({...event,slots},now);
   assert.equal(full.banner,'掲載枠はすべて予約済');
@@ -96,13 +95,14 @@ test('埋まった枠は予約済と表記し、個別の予約とイベント�
   assert.match(closed.text,/第1部　13:00〜14:00　予約済\n/);
 });
 
-test('予約枠の確認日時は枠の記録を優先し、日時不明のときは未確認とする', () => {
+test('日時や出典が入力にあっても、告知画像用の行と投稿文には予約枠の内容だけを渡す', () => {
   const now = at('2026-11-18T14:00');
-  const withSlotCheck = announcementFacts({...event,slots_checked_at:'2026/11/16 08:10'},now);
-  assert.match(withSlotCheck.text,/【予約枠】\n最終確認：2026\/11\/16 08:10（日本時間）/);
-  const unknown = announcementFacts({...event,slots_checked_at:null},now);
-  assert.match(unknown.text,/【予約枠】\n最終確認：未確認/);
-  assert.match(unknown.text,/情報確認：2026\/11\/17 12:30/);
+  const url = 'https://example.org/event/21';
+  const withSlotCheck = announcementFacts({...event,slots_checked_at:'2026/11/16 08:10',url,
+    sources:[{kind:'official_page',url}]},now);
+  assert.deepEqual(withSlotCheck.rows.find(([label]) => label === '予約枠'),['予約枠',
+    '第1部　13:00〜14:00　未確認\n第2部　15:00〜16:00　予約不可']);
+  assert.doesNotMatch(withSlotCheck.text,/最終確認|情報確認|掲載元|2026\/11\/(16|17)|example\.org/);
 });
 
 test('告知デザインを指定すると選んだ系統の中で切り替わる', () => {
