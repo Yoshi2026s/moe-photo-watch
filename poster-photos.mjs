@@ -25,3 +25,16 @@ export function rankPosterPhotos(photos, profile, previous, allowMismatch = fals
     .sort((a,b) => Number(b.permitted) - Number(a.permitted) || b.priority - a.priority)
     .map(item => item.photo);
 }
+
+export async function loadPosterSelection(candidates, load, { auto = false, random = Math.random } = {}) {
+  const distinct = [...new Map(candidates.map(photo => [photo.src,photo])).values()];
+  const count = auto && distinct.length > 1 && random() < .5 ? 2 : 1;
+  const images = [];
+  for (const candidate of distinct) {
+    try {
+      images.push(await load(candidate));
+      if (images.length === count) break;
+    } catch { /* Continue with the other eligible photos if a file cannot be loaded. */ }
+  }
+  return images;
+}
