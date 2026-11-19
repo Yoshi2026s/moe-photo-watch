@@ -2,7 +2,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/moe-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/moe-192.png">
-<link rel="stylesheet" href="style.css?v=photo-themes-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
+<link rel="stylesheet" href="style.css?v=announcement-flow-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
 <fieldset id="event-view" class="view-picker">
   <legend>表示形式</legend>
   <div class="view-choices">
@@ -20,6 +20,7 @@
   <p class="event-name"></p>
   <div class="design-tools">
     <button type="button" class="copy-message">投稿文をコピー</button>
+    <button type="button" class="view-message">投稿文を見る</button>
     <button type="button" class="shuffle">デザインを変える</button>
     <button type="button" class="edit-poster" aria-haspopup="dialog">細かく調整</button>
     <label class="format-label">画像サイズ<select id="poster-format">
@@ -31,7 +32,6 @@
     <button type="button" class="choose-design" aria-haspopup="dialog"><span>デザインを選ぶ</span><small></small></button>
   </div>
   <p class="announce-feedback" role="status" aria-live="polite"></p>
-  <p class="poster-save-tip">写真アプリに入れるには、画像を長押しして「写真に追加」または「画像を保存」を選びます。</p>
   <div class="poster-preview" aria-label="告知画像"></div>
   <label class="message-label" for="social-message">SNS投稿文</label>
   <textarea id="social-message" rows="8" readonly></textarea>
@@ -56,7 +56,13 @@
     <button type="button" class="remove-material-folder" hidden>フォルダの登録を解除</button>
   </div>
   <p class="poster-picker-status" role="status" hidden></p>
+  <div class="photo-filters" hidden>
+    <label>写真を検索<input type="search" class="photo-query" placeholder="写真名やファイル名"></label>
+    <label>素材元<select class="photo-origin"><option value="all">すべて</option><option value="site">掲載写真</option><option value="folder">同期フォルダ</option></select></label>
+  </div>
+  <p class="photo-results" role="status" hidden></p>
   <div class="poster-choices"></div>
+  <button type="button" class="more-photos" hidden>写真をさらに表示</button>
 </dialog>
 <dialog id="poster-editor" aria-labelledby="poster-editor-heading">
   <div class="dialog-heading"><h2 id="poster-editor-heading">告知画像の調整</h2><button type="button" class="cancel-poster-edit" autofocus>戻る</button></div>
@@ -89,4 +95,4 @@
     <button type="button" class="apply-poster-edit">反映する</button>
   </div>
 </dialog>
-<script type="module" src="app.js?v=photo-themes-1"></script></body></html>
+<script type="module" src="app.js?v=announcement-flow-1"></script></body></html>

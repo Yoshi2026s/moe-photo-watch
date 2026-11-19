@@ -60,8 +60,10 @@
 .intake { display: grid; justify-items: start; gap: 2px; margin: 0 0 18px; }
 .intake a, .poster-preview a { display: inline-flex; min-height: 48px; align-items: center; color: #853959; font-weight: 700; }
 .intake small { color: #675660; }
+.search-results { margin: 0 0 8px; color: #674e5c; font-size: .875rem; }
+.empty button { margin-top: 8px; }
 .make-announcement { width: 100%; margin-top: 10px; background: #fff5f8; }
-#announcement, #event-detail, #poster-picker, #poster-editor { color: inherit; width: min(100% - 20px, 630px); max-height: 90vh; max-height: 90dvh; overflow: auto; overscroll-behavior: contain; padding: 0 18px max(22px, env(safe-area-inset-bottom)); border: 1px solid #dab7c8; border-radius: 18px; box-shadow: 0 12px 60px #3e213a33; }
+#announcement, #event-detail, #poster-picker, #poster-editor { color: inherit; width: min(100% - 20px, 630px); max-height: 90vh; max-height: 90dvh; overflow: auto; overscroll-behavior: contain; padding: 0 18px max(22px, env(safe-area-inset-bottom)); border: 1px solid #dab7c8; border-radius: 18px; box-shadow: 0 12px 60px #3e213a33; scroll-padding-block-start: 72px; }
 dialog::backdrop { background: #35253599; }
 body:has(dialog[open]) { overflow: hidden; }
 .dialog-heading { position: sticky; inset-block-start: 0; z-index: 1; background: white; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-block: 10px; border-bottom: 1px solid #eddae1; }
@@ -88,6 +90,12 @@ body:has(dialog[open]) { overflow: hidden; }
 .upload-photo input { min-width: 0; max-width: 100%; min-height: 48px; font: inherit; }
 .upload-photo input::file-selector-button { min-height: 48px; font: inherit; }
 .poster-picker-status { margin-bottom: 8px; color: #674e5c; }
+.photo-filters:not([hidden]) { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,8rem); gap: 8px; }
+.photo-filters label { display: grid; font-size: .875rem; font-weight: 700; }
+.photo-filters :is(input,select) { width: 100%; min-width: 0; min-height: 48px; padding-inline: 8px; border: 1px solid #a2788d; border-radius: 8px; background: white; color: inherit; font: inherit; font-size: 1rem; }
+.photo-results { margin-block: 8px; color: #674e5c; font-size: .875rem; }
+.more-photos { margin-top: 12px; width: 100%; }
+.more-photos[hidden] { display: none; }
 .poster-choices { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .poster-choice {
   display: block;
@@ -102,6 +110,8 @@ body:has(dialog[open]) { overflow: hidden; }
 .poster-choice img, .poster-choice canvas { display: block; width: 100%; border-radius: 6px; background: #f8eef4; }
 .poster-choice img { aspect-ratio: 4 / 5; object-fit: cover; object-position: center 30%; }
 .poster-choice canvas { height: auto; }
+.design-thumbnail { display: grid; place-items: center; overflow: hidden; border-radius: 6px; background: #f8eef4; }
+.thumbnail-unavailable { background: #efe4eb; }
 .poster-choice span { display: block; padding: 6px 1px; font-size: .8rem; line-height: 1.35; overflow-wrap: anywhere; }
 @media (min-width: 600px) {
   .poster-choices { grid-template-columns: repeat(4,minmax(0,1fr)); }
@@ -136,14 +146,12 @@ body:has(dialog[open]) { overflow: hidden; }
 .announce-feedback { min-height: 1.6em; margin: 8px 0; color: #634454; }
 .poster-preview figure { position: relative; margin: 0 0 18px; }
 .poster-preview img { display: block; width: 100%; height: auto; border: 1px solid #e2cfd8; -webkit-touch-callout: default; }
-.poster-save-tip { display: none; }
-@media (any-pointer: coarse) {
-  .poster-save-tip:has(+ .poster-preview img) { display: block; margin-bottom: 8px; font-size: .9rem; }
-}
+.poster-save-tip { margin-block: 0 8px; font-size: .875rem; color: #674e5c; }
+.poster-save-tip[hidden] { display: none; }
 .poster-preview a { padding-inline: 12px; }
 .poster-actions, .poster-preview .press-save { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
-.poster-actions { margin-top: 6px; }
-.photo-share { background: #843b60; color: white; }
+.poster-actions { margin-bottom: 8px; }
+.poster-actions .download-poster, .photo-share { border-radius: 12px; background: #843b60; color: white; text-decoration: none; }
 .poster-action-status { margin-top: 5px; color: #674e5c; font-size: .875rem; }
 .poster-action-status:empty { display: none; }
 .poster-preview .press-save {
@@ -160,6 +168,7 @@ body:has(dialog[open]) { overflow: hidden; }
   box-shadow: 0 2px 12px #38223133;
 }
 #social-message, #skill-prompt { font: inherit; font-size: 1rem; width: 100%; margin: 5px 0; resize: vertical; border: 1px solid #a2788d; border-radius: 8px; padding: 10px; }
+#social-message { scroll-margin-block-start: 28px; }
 .copy-message { background: #843b60; color: white; }
 .skill-prompt-preview summary { min-height: 48px; padding-block: 12px; cursor: pointer; color: #753454; font-weight: 700; }
 .skill-prompt-feedback:empty { display: none; }
