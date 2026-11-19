@@ -4,6 +4,7 @@ import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './ann
 import { openPosterEditor } from './poster-editor.mjs?v=photo-themes-1';
 import { posterPhotos, rankPosterPhotos } from './poster-photos.mjs?v=photo-themes-1';
 import { photoInputError } from './manual-photo.mjs';
+import { createCopyRequest } from './clipboard-copy.mjs';
 
 const dialog = document.querySelector('#announcement');
 const preview = dialog.querySelector('.poster-preview');
@@ -11,6 +12,8 @@ const message = dialog.querySelector('#social-message');
 const feedback = dialog.querySelector('.announce-feedback');
 const shuffle = dialog.querySelector('.shuffle');
 const copy = dialog.querySelector('.copy-message');
+const postFeedback = dialog.querySelector('.post-copy-status');
+const postManualFeedback = dialog.querySelector('#post-manual-status');
 const copySkillPrompt = dialog.querySelector('.copy-skill-prompt');
 const skillPrompt = dialog.querySelector('#skill-prompt');
 const promptPreview = dialog.querySelector('.skill-prompt-preview');
@@ -41,7 +44,9 @@ let event, request = 0, uploaded = null, uploadedName = '', pendingPhoto, blank 
 const posterFiles = new WeakMap();
 let displayedText = '', design, photoChoice, crop;
 let press, saveMenuTimer;
-let copyAttempt = 0;
+const writeClipboard = text => navigator.clipboard.writeText(text);
+const postCopy = createCopyRequest(writeClipboard);
+const skillCopy = createCopyRequest(writeClipboard);
 let selectedTheme = '', selectedPhoto = '', pickerMode, pickerRequest = 0;
 const photoSources = new WeakMap();
 let recommendedPhotos;
@@ -296,7 +301,7 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
     photoChoice = choosePhoto(facts);
   }
   displayedText = facts.text;
-  message.value = facts.text;
+  syncPostMessage(facts.text);
   if (promptPreview.open) refreshSkillPrompt();
   feedback.textContent = '告知画像を作成中…';
   clearPress();
@@ -347,7 +352,8 @@ async function generate({ newDesign = false, newPhoto = false } = {}) {
 
 export function openAnnouncement(item) {
   event = item;
-  copyAttempt++;
+  resetPostCopy();
+  skillCopy.cancel();
   copySkillPrompt.disabled = false;
   promptPreview.open = false;
   skillPrompt.value = '';
@@ -392,6 +398,8 @@ format.addEventListener('change',() => generate());
 dialog.querySelector('.close-dialog').addEventListener('click',() => dialog.close());
 dialog.addEventListener('close',() => {
   if (dialog.open) return;
+  resetPostCopy();
+  skillCopy.cancel();
   clearPress();
   request++;
   photoChoice = null;
@@ -523,16 +531,44 @@ dialog.querySelector('.view-message').addEventListener('click',() => {
   message.focus({preventScroll:true});
   message.scrollIntoView({block:'start'});
 });
+function resetPostCopy() {
+  postCopy.cancel();
+  copy.disabled = false;
+  postFeedback.textContent = '';
+  postManualFeedback.textContent = '';
+}
+
+function syncPostMessage(text) {
+  if (message.value === text) return;
+  resetPostCopy();
+  message.value = text;
+}
+
+function selectFullText(textarea) {
+  textarea.focus({preventScroll:true});
+  textarea.scrollIntoView({block:'nearest'});
+  textarea.select();
+  textarea.setSelectionRange(0,textarea.value.length);
+}
+
+function selectPostMessage() {
+  syncPostMessage(announcementFacts(event).text);
+  resetPostCopy();
+  postManualFeedback.textContent = '投稿文を全選択しました。端末のメニューから「コピー」を選んでください。';
+  selectFullText(message);
+}
+
+dialog.querySelector('.select-message').addEventListener('click',selectPostMessage);
 copy.addEventListener('click',async () => {
-  message.value = announcementFacts(event).text;
-  try {
-    await navigator.clipboard.writeText(message.value);
-    feedback.textContent = '投稿文をコピーしました。';
-  } catch {
-    message.focus();
-    message.select();
-    feedback.textContent = '投稿文を選択しました。端末のコピーメニューをご利用ください。';
-  }
+  syncPostMessage(announcementFacts(event).text);
+  copy.disabled = true;
+  postManualFeedback.textContent = '';
+  postFeedback.textContent = '投稿文をコピー中…';
+  const result = await postCopy.write(message.value);
+  if (!result || !dialog.open) return;
+  copy.disabled = false;
+  if (result === 'manual') selectPostMessage();
+  else postFeedback.textContent = '投稿文をコピーしました。';
 });
 
 function refreshSkillPrompt() {
@@ -549,20 +585,17 @@ promptPreview.addEventListener('toggle', () => {
 
 copySkillPrompt.addEventListener('click', async () => {
   const prompt = refreshSkillPrompt();
-  const attempt = ++copyAttempt;
   copySkillPrompt.disabled = true;
-  try {
-    await navigator.clipboard.writeText(prompt);
-    if (attempt !== copyAttempt || !dialog.open) return;
-    skillFeedback.textContent = '依頼文をコピーしました。';
-  } catch {
-    if (attempt !== copyAttempt || !dialog.open) return;
+  skillFeedback.textContent = '依頼文をコピー中…';
+  const result = await skillCopy.write(prompt);
+  if (!result || !dialog.open) return;
+  copySkillPrompt.disabled = false;
+  if (result === 'manual') {
     promptPreview.open = true;
     refreshSkillPrompt();
-    skillPrompt.focus();
-    skillPrompt.select();
     skillFeedback.textContent = '依頼文を全選択しました。端末のメニューから「コピー」を選んでください。';
-  } finally {
-    if (attempt === copyAttempt) copySkillPrompt.disabled = false;
+    selectFullText(skillPrompt);
+  } else {
+    skillFeedback.textContent = '依頼文をコピーしました。';
   }
 });
