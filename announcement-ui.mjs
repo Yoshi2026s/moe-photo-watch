@@ -4,6 +4,7 @@ import { nextDesign, posterThemeGroups, posterThemes, renderPoster } from './ann
 import { openPosterEditor } from './poster-editor.mjs?v=photo-themes-1';
 import { posterPhotos, rankPosterPhotos } from './poster-photos.mjs?v=photo-themes-1';
 import { listMaterialPhotos, savedMaterialFolder, saveMaterialFolder, supportsMaterialFolder, usablePhoto } from './poster-materials.mjs';
+import { clearSavedDrivePhotos, importDrivePhotos, savedDrivePhotos } from './poster-imported-photos.mjs?v=drive-import-1';
 
 const dialog = document.querySelector('#announcement');
 const preview = dialog.querySelector('.poster-preview');
@@ -25,7 +26,7 @@ const choices = picker.querySelector('.poster-choices');
 const themeFilter = picker.querySelector('.theme-filter select');
 const pickerStatus = picker.querySelector('.poster-picker-status');
 const blankButton = picker.querySelector('.blank-photo');
-const fileInput = picker.querySelector('input[type=file]');
+const fileInput = picker.querySelector('.upload-photo input');
 const drivePanel = picker.querySelector('.drive-materials');
 const driveConnection = picker.querySelector('.drive-connection');
 const driveHelp = picker.querySelector('.drive-help');
@@ -33,7 +34,10 @@ const folderButton = picker.querySelector('.material-folder');
 const permitFolderButton = picker.querySelector('.permit-material-folder');
 const refreshFolderButton = picker.querySelector('.refresh-material-folder');
 const removeFolderButton = picker.querySelector('.remove-material-folder');
-const driveButtons = [folderButton,permitFolderButton,refreshFolderButton,removeFolderButton];
+const importButton = picker.querySelector('.import-drive-photos');
+const importInput = picker.querySelector('.drive-files');
+const clearImportButton = picker.querySelector('.clear-drive-photos');
+const driveButtons = [folderButton,permitFolderButton,refreshFolderButton,removeFolderButton,importButton,clearImportButton];
 const photoFilters = picker.querySelector('.photo-filters');
 const photoQuery = picker.querySelector('.photo-query');
 const photoOrigin = picker.querySelector('.photo-origin');
@@ -53,6 +57,7 @@ let materialFolder = supportsMaterialFolder ? savedMaterialFolder().catch(() => 
 let currentMaterials = { state:'none', photos:[] };
 let materialScan, recommendedPhotos;
 let driveActionPending = false;
+let importedPhotos = [], importRead = 0, importReadFailed = false;
 let photoLimit = photoPageSize;
 let designPreviewObserver;
 
@@ -167,13 +172,29 @@ function refreshMaterials() {
 }
 
 function initialMaterials() {
-  const scan = refreshMaterials();
+  const scan = Promise.all([refreshMaterials(),refreshImports()]).then(([material]) => material);
   // Drive can take a moment to reconnect, even when the browser still has permission.
   let timer;
   const fallback = new Promise(resolve => {
     timer = setTimeout(() => resolve({ photos:[] }),1800);
   });
   return Promise.race([scan,fallback]).finally(() => clearTimeout(timer));
+}
+
+async function refreshImports() {
+  const id = ++importRead;
+  try {
+    const items = await savedDrivePhotos();
+    if (id === importRead) {
+      importedPhotos = items;
+      importReadFailed = false;
+    }
+  } catch {
+    if (id === importRead) {
+      importedPhotos = [];
+      importReadFailed = true;
+    }
+  }
 }
 
 async function loadMaterialPhoto(file) {
@@ -187,10 +208,13 @@ async function choosePhoto(facts, materials) {
   if (blank || uploaded) return uploaded;
   const selected = posterPhotos.find(photo => photo.src === selectedPhoto);
   const { photos } = await materials;
-  const automatic = rankPosterPhotos([...posterPhotos,...photos.filter(photo => photo.outfits.length)],facts.profile,previousPhoto);
+  const candidates = [...photos,...importedPhotos].filter(photo => photo.outfits.length);
+  const automatic = rankPosterPhotos([...posterPhotos,...candidates],facts.profile,previousPhoto);
   for (const candidate of (selected ? [selected,...automatic] : automatic)) {
     try {
-      const image = candidate.file ? await loadMaterialPhoto(candidate.file) : await loadPhoto(candidate.src);
+      const file = candidate.loadFile ? await candidate.loadFile() : candidate.file;
+      if (candidate.loadFile && !file) continue;
+      const image = file ? await loadMaterialPhoto(file) : await loadPhoto(candidate.src);
       photoSources.set(image,candidate);
       return image;
     } catch { /* Try another reviewed reference before leaving the photo space blank. */ }
@@ -232,13 +256,16 @@ function renderDriveConnection() {
   permitFolderButton.hidden = !supportsMaterialFolder || !needsPermission;
   refreshFolderButton.hidden = !supportsMaterialFolder || !folder || needsPermission;
   removeFolderButton.hidden = !supportsMaterialFolder || !folder;
+  clearImportButton.hidden = !importedPhotos.length;
   folderButton.textContent = folder ? 'フォルダを変更' : 'Driveフォルダを登録';
   folderButton.classList.toggle('drive-primary',!folder);
   permitFolderButton.classList.toggle('drive-primary',needsPermission);
   refreshFolderButton.classList.toggle('drive-primary',Boolean(folder && !needsPermission));
+  importButton.classList.toggle('drive-primary',!supportsMaterialFolder);
+  const localCount = 'この端末に追加した写真 ' + importedPhotos.length + '枚';
   if (!supportsMaterialFolder) {
-    driveConnection.textContent = 'このブラウザーではフォルダ登録に対応していません。';
-    driveHelp.textContent = '「端末の写真」から、ファイル選択画面でGoogle Driveの写真を選べます。';
+    driveConnection.textContent = localCount;
+    driveHelp.textContent = '「Driveの写真を追加」を押し、「ファイルを選択」→「ブラウズ」→「Google Drive」→「告知画像」で写真を選びます。追加した写真はこのブラウザーに保存されます。';
   } else if (!folder) {
     driveConnection.textContent = '未登録';
     driveHelp.textContent = '「Driveフォルダを登録」を押し、PCのGoogle Drive → マイドライブ → 告知画像を選んで読み取りを許可します。';
@@ -250,6 +277,8 @@ function renderDriveConnection() {
       : state === 'error' ? 'PCでGoogle Driveの同期を確認し、「Driveの写真を更新」を押してください。'
       : photos.length ? '' : 'フォルダに対応する写真がありません。JPEG・PNG・WebPの写真を確認してください。';
   }
+  if (supportsMaterialFolder && importedPhotos.length) driveConnection.textContent += ' ／ ' + localCount;
+  if (importReadFailed) driveConnection.textContent += ' ／ 端末に追加した写真を読み込めませんでした。';
 }
 
 function renderPhotoChoices() {
@@ -259,23 +288,25 @@ function renderPhotoChoices() {
   const origin = photoOrigin.value;
   const query = photoQuery.value.trim().normalize('NFKC').toLocaleLowerCase('ja');
   const candidates = [
-    ...(origin === 'site' ? [] : selection.photos),
+    ...(origin === 'site' ? [] : [...importedPhotos,...selection.photos]),
     ...(origin === 'folder' ? [] : recommendedPhotos)
   ].filter(photo => photo.label.normalize('NFKC').toLocaleLowerCase('ja').includes(query));
   const visible = candidates.slice(0,photoLimit);
   photoResults.textContent = candidates.length ? candidates.length + '枚中 ' + visible.length + '枚を表示'
+    : origin === 'folder' && !query ? 'Driveの写真がまだ表示されていません。「Driveの写真を追加」から登録できます。'
     : '条件に合う写真がありません。';
   morePhotos.hidden = visible.length === candidates.length;
   for (const photo of visible) {
     const thumbnail = document.createElement('img');
     thumbnail.alt = '';
     thumbnail.loading = 'lazy';
-    if (photo.file) {
-      thumbnail.src = URL.createObjectURL(photo.file);
+    const image = photo.thumbnail || photo.file;
+    if (image) {
+      thumbnail.src = URL.createObjectURL(image);
       thumbnailUrls.push(thumbnail.src);
     } else thumbnail.src = photo.src;
-    const apply = photo.file ? () => useLocalPhoto(photo.file,photo) : () => useReferencePhoto(photo.src);
-    const choice = thumbnailChoice(photo.label,thumbnail,!blank && previousPhoto === photo.src,apply,!photo.file);
+    const apply = image ? () => useLocalPhoto(photo.file,photo) : () => useReferencePhoto(photo.src);
+    const choice = thumbnailChoice(photo.label,thumbnail,!blank && previousPhoto === photo.src,apply,!image);
     choice.dataset.photo = photo.src;
     choices.append(choice);
     if (photo.src === focused) choice.focus({preventScroll:true});
@@ -284,7 +315,7 @@ function renderPhotoChoices() {
 
 async function updatePhotoChoices(id) {
   if (supportsMaterialFolder) showPickerStatus('Driveフォルダを確認中…');
-  await refreshMaterials();
+  await Promise.all([refreshMaterials(),refreshImports()]);
   if (id !== pickerRequest || !picker.open) return;
   showPickerStatus('');
   renderDriveConnection();
@@ -545,7 +576,7 @@ picker.querySelector('.auto-choice').addEventListener('click',() => {
   }
 });
 async function useLocalPhoto(file, source) {
-  if (!usablePhoto(file)) {
+  if (!source?.loadFile && !usablePhoto(file)) {
     showPickerStatus('12MB以内のJPEG・PNG・WebP画像を選んでください。');
     fileInput.value = '';
     return;
@@ -553,7 +584,9 @@ async function useLocalPhoto(file, source) {
   const id = ++pickerRequest;
   showPickerStatus('写真を読み込み中…');
   try {
-    const image = await loadMaterialPhoto(file);
+    const input = source?.loadFile ? await source.loadFile() : file;
+    if (!input) throw Error('Missing photo');
+    const image = await loadMaterialPhoto(input);
     if (id !== pickerRequest || !picker.open) return;
     if (source) photoSources.set(image,source);
     uploaded = image;
@@ -585,19 +618,39 @@ async function chooseDriveFolder(id) {
   return '';
 }
 
-async function useDrivePhotos(action) {
+function importResultText(result) {
+  return [
+    result.added + '枚をこの端末に追加しました。',
+    result.duplicate && '登録済み ' + result.duplicate + '枚',
+    result.invalid && '非対応形式または12MB超 ' + result.invalid + '枚',
+    result.unreadable && '読み込めない写真 ' + result.unreadable + '枚',
+    result.storageFailed && '端末に保存できず途中で止まりました。保存できた写真は一覧で確認できます。'
+  ].filter(Boolean).join(' ');
+}
+
+async function useDrivePhotos(action, files) {
   if (driveActionPending) return;
   const id = ++pickerRequest;
   driveActionPending = true;
   for (const button of driveButtons) button.disabled = true;
   try {
     let problem = '';
+    let notice = '';
     if (action === 'choose') {
       problem = await chooseDriveFolder(id);
     } else if (action === 'remove') {
       await saveMaterialFolder(null);
       materialFolder = Promise.resolve(null);
       currentMaterials = { state:'none', photos:[] };
+    } else if (action === 'import') {
+      showPickerStatus('写真をこの端末に保存中…');
+      const result = await importDrivePhotos(files);
+      await refreshImports();
+      notice = importResultText(result);
+    } else if (action === 'clear-imports') {
+      await clearSavedDrivePhotos();
+      await refreshImports();
+      notice = 'この端末に追加した写真の登録を解除しました。';
     } else {
       if (action === 'permit') {
         await currentMaterials.folder.requestPermission({mode:'read'});
@@ -609,11 +662,11 @@ async function useDrivePhotos(action) {
     if (id !== pickerRequest || !picker.open) return;
     renderDriveConnection();
     if (!problem) {
-      photoOrigin.value = currentMaterials.photos.length ? 'folder' : 'all';
+      photoOrigin.value = currentMaterials.photos.length || importedPhotos.length ? 'folder' : 'all';
       photoQuery.value = '';
       filterPhotos();
     }
-    showPickerStatus(problem);
+    showPickerStatus(problem || notice);
   } catch (error) {
     if (id === pickerRequest && picker.open) {
       showPickerStatus(error.name === 'AbortError' ? '' : 'Driveフォルダを登録・更新できませんでした。もう一度お試しください。');
@@ -627,6 +680,15 @@ folderButton.addEventListener('click',() => useDrivePhotos('choose'));
 permitFolderButton.addEventListener('click',() => useDrivePhotos('permit'));
 refreshFolderButton.addEventListener('click',() => useDrivePhotos('refresh'));
 removeFolderButton.addEventListener('click',() => useDrivePhotos('remove'));
+importButton.addEventListener('click',() => importInput.click());
+importInput.addEventListener('change',() => {
+  const files = Array.from(importInput.files);
+  importInput.value = '';
+  if (files.length) useDrivePhotos('import',files);
+});
+clearImportButton.addEventListener('click',() => {
+  if (window.confirm('この端末に追加した写真の登録をすべて解除しますか？')) useDrivePhotos('clear-imports');
+});
 dialog.querySelector('.view-message').addEventListener('click',() => {
   message.focus({preventScroll:true});
   message.scrollIntoView({block:'start'});
