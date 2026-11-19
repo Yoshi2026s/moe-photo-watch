@@ -2,7 +2,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" sizes="180x180" href="icons/moe-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/moe-192.png">
-<link rel="stylesheet" href="style.css?v=announcement-flow-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
+<link rel="stylesheet" href="style.css?v=drive-registration-1"></head><body><header><div class="wrap"><h1>もえの撮影会情報</h1></div></header><main class="wrap"><section aria-labelledby="heading"><div class="section-heading"><h2 id="heading">撮影会一覧</h2><button id="refresh" type="button">再読み込み</button></div><p id="updated" class="meta" role="status">情報を読み込み中…</p><div class="filters" id="filters" hidden><div class="filter-search"><label for="query">名前・会場・日付で検索</label><input id="query" type="search"></div><div class="filter-period"><label for="period">表示範囲</label><select id="period"><option value="upcoming">これから</option><option value="past">過去3か月</option></select></div>
 <fieldset id="event-view" class="view-picker">
   <legend>表示形式</legend>
   <div class="view-choices">
@@ -47,18 +47,27 @@
 </dialog>
 <dialog id="poster-picker" aria-labelledby="poster-picker-heading">
   <div class="dialog-heading"><h2 id="poster-picker-heading"></h2><button type="button" class="close-picker" autofocus>戻る</button></div>
+  <section class="drive-materials" aria-labelledby="drive-materials-heading" hidden>
+    <h3 id="drive-materials-heading">Google Driveの写真</h3>
+    <p class="drive-connection" role="status"></p>
+    <p class="drive-help"></p>
+    <div class="drive-actions">
+      <button type="button" class="material-folder">Driveフォルダを登録</button>
+      <button type="button" class="permit-material-folder" hidden>読み取りを許可</button>
+      <button type="button" class="refresh-material-folder" hidden>Driveの写真を更新</button>
+      <button type="button" class="remove-material-folder" hidden>登録を解除</button>
+    </div>
+  </section>
   <div class="poster-picker-actions">
     <button type="button" class="auto-choice">おまかせで選ぶ</button>
     <label class="format-label theme-filter" hidden>雰囲気<select></select></label>
     <button type="button" class="blank-photo">写真枠を空欄にする</button>
     <label class="upload-photo">端末の写真<input type="file" accept="image/jpeg,image/png,image/webp"></label>
-    <button type="button" class="material-folder" hidden>Google Driveの同期フォルダを選ぶ</button>
-    <button type="button" class="remove-material-folder" hidden>フォルダの登録を解除</button>
   </div>
   <p class="poster-picker-status" role="status" hidden></p>
   <div class="photo-filters" hidden>
     <label>写真を検索<input type="search" class="photo-query" placeholder="写真名やファイル名"></label>
-    <label>素材元<select class="photo-origin"><option value="all">すべて</option><option value="site">掲載写真</option><option value="folder">同期フォルダ</option></select></label>
+    <label>素材元<select class="photo-origin"><option value="all">すべて</option><option value="site">掲載写真</option><option value="folder">Driveの写真</option></select></label>
   </div>
   <p class="photo-results" role="status" hidden></p>
   <div class="poster-choices"></div>
@@ -95,4 +104,4 @@
     <button type="button" class="apply-poster-edit">反映する</button>
   </div>
 </dialog>
-<script type="module" src="app.js?v=announcement-flow-1"></script></body></html>
+<script type="module" src="app.js?v=drive-registration-1"></script></body></html>

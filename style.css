@@ -90,6 +90,15 @@ body:has(dialog[open]) { overflow: hidden; }
 .upload-photo input { min-width: 0; max-width: 100%; min-height: 48px; font: inherit; }
 .upload-photo input::file-selector-button { min-height: 48px; font: inherit; }
 .poster-picker-status { margin-bottom: 8px; color: #674e5c; }
+.drive-materials { margin: 10px 0 0; padding: 12px; border: 1px solid #dfc3d1; border-radius: 12px; background: #fff6fa; }
+.drive-materials h3 { margin: 0 0 3px; font-size: 1rem; }
+.drive-connection { color: #713353; font-weight: 700; overflow-wrap: anywhere; }
+.drive-help { color: #674e5c; font-size: .875rem; }
+.drive-help:empty { display: none; }
+.drive-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.drive-actions:not(:has(> :not([hidden]))), .drive-actions > [hidden] { display: none; }
+.drive-actions button { padding-inline: 10px; }
+.drive-actions .drive-primary { background: #843b60; color: white; }
 .photo-filters:not([hidden]) { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,8rem); gap: 8px; }
 .photo-filters label { display: grid; font-size: .875rem; font-weight: 700; }
 .photo-filters :is(input,select) { width: 100%; min-width: 0; min-height: 48px; padding-inline: 8px; border: 1px solid #a2788d; border-radius: 8px; background: white; color: inherit; font: inherit; font-size: 1rem; }
