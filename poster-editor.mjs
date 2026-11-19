@@ -1,4 +1,4 @@
-import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=touch-crop-1';
+import { posterLayouts, posterVariant, renderPoster } from './announcement-poster.mjs?v=two-photos-1';
 import { letteringOptions } from './poster-lettering.mjs?v=poster-density-1';
 import { backgroundPatterns } from './poster-patterns.mjs?v=photo-themes-1';
 import { cropFromGesture, defaultCrop } from './poster-crop.mjs?v=touch-crop-1';
@@ -16,16 +16,20 @@ const typeface = editor.querySelector('#poster-typeface');
 const typeSize = editor.querySelector('#poster-type-size');
 const pattern = editor.querySelector('#poster-pattern');
 const cropControls = editor.querySelector('.poster-crop');
+const cropTarget = cropControls.querySelector('.crop-photo-target select');
 const ranges = [...cropControls.querySelectorAll('input[type=range]')];
 const rangeReadouts = new Map(ranges.map(range => [range.name,cropControls.querySelector('[data-crop-value="' + range.name + '"]')]));
 const fit = cropControls.querySelector('input[name=fit]');
 const portraitScreen = matchMedia('(max-width: 600px) and (orientation: portrait)');
 const contacts = new Map();
-let source, draft, crop, frame, photoFrame, gesture;
+let source, draft, crops, frame, photoFrame, gesture;
 
-for (const [key, name] of Object.entries(posterLayouts)) layout.add(new Option(name, key));
+const pairedLayouts = { split:'同じ幅で並べる', feature:'1枚目を大きく', stack:'写真の比率に合わせる', banner:'2枚目を大きく' };
 for (const [key, name] of Object.entries(letteringOptions)) lettering.add(new Option(name,key));
 for (const [key, motif] of Object.entries(backgroundPatterns)) pattern.add(new Option(motif.label,key));
+
+const currentCrop = () => crops[Number(cropTarget.value)];
+const initialCrop = () => ({ ...defaultCrop, fit: Boolean(source.secondaryPhoto) });
 
 function drawPreview() {
   cancelAnimationFrame(frame);
@@ -33,7 +37,9 @@ function drawPreview() {
     if (!editor.open) return;
     photoFrame = null;
     const image = renderPoster(source.facts,draft,source.photo,source.format,{
-      previewScale: .3, crop, onPhotoFrame: geometry => { photoFrame = geometry; }
+      previewScale: .3, crop: crops[0], secondaryPhoto: source.secondaryPhoto, secondCrop: crops[1],
+      onPhotoFrame: geometry => { if (cropTarget.value === '0') photoFrame = geometry; },
+      onSecondPhotoFrame: geometry => { if (cropTarget.value === '1') photoFrame = geometry; }
     });
     image.setAttribute('aria-hidden','true');
     canvasMount.replaceChildren(image);
@@ -44,7 +50,7 @@ function drawPreview() {
 function updateGestureAvailability() {
   preview.toggleAttribute('data-crop-gesture',Boolean(
     window.PointerEvent && editor.open && portraitScreen.matches &&
-    editor.dataset.editSection === 'crop' && photoFrame && !crop.fit
+    editor.dataset.editSection === 'crop' && photoFrame && !currentCrop().fit
   ));
 }
 
@@ -74,8 +80,9 @@ function rebaseGesture() {
     });
     return { x: local.x - x, y: local.y - y };
   };
-  const { naturalWidth: sourceWidth, naturalHeight: sourceHeight } = source.photo;
-  gesture = { crop: { ...crop }, geometry: { sourceWidth, sourceHeight, width, height },
+  const selectedPhoto = cropTarget.value === '1' ? source.secondaryPhoto : source.photo;
+  const { naturalWidth: sourceWidth, naturalHeight: sourceHeight } = selectedPhoto;
+  gesture = { crop: { ...currentCrop() }, geometry: { sourceWidth, sourceHeight, width, height },
     start: [...contacts.values()].map(toPhoto), toPhoto };
 }
 
@@ -92,8 +99,9 @@ preview.addEventListener('pointermove',event => {
   contacts.set(event.pointerId,{ x: event.clientX, y: event.clientY });
   const { geometry, start, toPhoto } = gesture;
   const next = cropFromGesture(gesture.crop,geometry,start,[...contacts.values()].map(toPhoto));
+  const crop = currentCrop();
   if (next.zoom === crop.zoom && next.x === crop.x && next.y === crop.y) return;
-  crop = next;
+  crops[Number(cropTarget.value)] = next;
   reflectCrop();
   drawPreview();
 });
@@ -129,6 +137,7 @@ function setVariant(palette, left, positioning) {
 }
 
 function reflectCrop() {
+  const crop = currentCrop();
   fit.checked = crop.fit;
   for (const range of ranges) {
     range.value = crop[range.name];
@@ -160,7 +169,11 @@ export function openPosterEditor(options) {
   typeface.value = draft.typeface || '';
   typeSize.value = draft.typeSize || '';
   pattern.value = draft.backgroundPattern || '';
-  crop = { ...defaultCrop, ...options.crop };
+  cropTarget.value = '0';
+  cropTarget.parentElement.hidden = !options.secondaryPhoto;
+  crops = [{ ...initialCrop(), ...options.crop },{ ...initialCrop(), ...options.secondCrop }];
+  layout.replaceChildren();
+  for (const [key,name] of Object.entries(options.secondaryPhoto ? pairedLayouts : posterLayouts)) layout.add(new Option(name,key));
   cropControls.disabled = !options.photo;
   cropTab.disabled = !options.photo;
   cropTab.title = options.photo ? '' : '写真を選ぶと調整できます';
@@ -189,17 +202,23 @@ for (const control of [lettering,typeface,typeSize,pattern]) {
   control.addEventListener('change',() => setVariant(draft.palette,draft.left,draft.layout));
 }
 editor.querySelector('.flip-poster').addEventListener('click',() => setVariant(draft.palette,!draft.left,draft.layout));
+cropTarget.addEventListener('change',() => {
+  stopGesture();
+  photoFrame = null;
+  reflectCrop();
+  drawPreview();
+});
 fit.addEventListener('change',() => {
   stopGesture();
-  crop.fit = fit.checked;
-  if (crop.fit) photoFrame = null;
+  currentCrop().fit = fit.checked;
+  if (fit.checked) photoFrame = null;
   reflectCrop();
   drawPreview();
 });
 for (const range of ranges) {
   range.addEventListener('input',() => {
     stopGesture();
-    crop[range.name] = range.valueAsNumber;
+    currentCrop()[range.name] = range.valueAsNumber;
     showCropValue(range);
     drawPreview();
   });
@@ -207,13 +226,14 @@ for (const range of ranges) {
 for (const button of editTabs) button.addEventListener('click',() => showEditSection(button.dataset.editTab));
 editor.querySelector('.center-crop').addEventListener('click',() => {
   stopGesture();
+  const crop = currentCrop();
   crop.x = crop.y = .5;
   reflectCrop();
   drawPreview();
 });
 editor.querySelector('.reset-crop').addEventListener('click',() => {
   stopGesture();
-  crop = { ...defaultCrop };
+  crops[Number(cropTarget.value)] = initialCrop();
   reflectCrop();
   drawPreview();
 });
@@ -222,7 +242,7 @@ editor.querySelector('.reset-poster-edit').addEventListener('click',() => {
   typeface.value = '';
   typeSize.value = '';
   pattern.value = '';
-  crop = { ...defaultCrop };
+  crops = [initialCrop(),initialCrop()];
   reflectCrop();
   setVariant(0,false);
 });
@@ -230,13 +250,13 @@ editor.querySelector('.cancel-poster-edit').addEventListener('click',() => edito
 editor.querySelector('.apply-poster-edit').addEventListener('click',() => {
   const { apply } = source;
   editor.close();
-  apply(draft,crop);
+  apply(draft,...crops);
 });
 editor.addEventListener('close',() => {
   if (editor.open) return;
   stopGesture();
   cancelAnimationFrame(frame);
   canvasMount.replaceChildren();
-  source = draft = crop = photoFrame = null;
+  source = draft = crops = photoFrame = null;
   updateGestureAvailability();
 });
