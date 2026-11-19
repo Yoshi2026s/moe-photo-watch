@@ -10,12 +10,14 @@ from pathlib import Path
 import re
 import tempfile
 
-from PIL import Image, ImageCms, ImageOps
+from PIL import Image, ImageChops, ImageCms, ImageOps, ImageStat
 
 
 REPO = Path(__file__).resolve().parents[1]
 OUTFITS = {"animal", "casual", "costume", "dress", "kimono", "swim", "uniform"}
 SCENES = {"flower", "light", "luxury", "monochrome", "night", "outdoor", "pool", "retro", "school"}
+COMPARISON_SIZE = 160
+COMPARISON_TILE = 40
 
 
 def atomic_write(path, data):
@@ -94,6 +96,46 @@ def make_webp(data):
         return output.getvalue()
 
 
+def photo_sample(image):
+    """Compare a fixed-size render while retaining the original aspect ratio."""
+    if min(image.size) < 128:
+        return None
+    sample = image.convert("RGB").resize((COMPARISON_SIZE, COMPARISON_SIZE), Image.Resampling.LANCZOS)
+    return image.width / image.height, sample
+
+
+def published_samples(folder, rows):
+    samples = {}
+    for slug, *_ in rows:
+        path = folder / (slug + ".webp")
+        if path.is_file():
+            with Image.open(path) as image:
+                samples[slug] = photo_sample(image)
+    return samples
+
+
+def find_same_photo(sample, candidates):
+    if sample is None:
+        return None
+    ratio, image = sample
+    closest = None
+    best_score = 3.8
+    for slug, candidate in candidates.items():
+        if candidate is None or abs(ratio / candidate[0] - 1) > 0.006:
+            continue
+        difference = ImageChops.difference(image, candidate[1])
+        score = max(ImageStat.Stat(difference).rms)
+        if score > best_score:
+            continue
+        # A local change, such as a different expression, can survive a whole-image average.
+        tiles = (difference.crop((x, y, x + COMPARISON_TILE, y + COMPARISON_TILE))
+                 for y in range(0, COMPARISON_SIZE, COMPARISON_TILE)
+                 for x in range(0, COMPARISON_SIZE, COMPARISON_TILE))
+        if all(max(ImageStat.Stat(tile).rms) <= 6 for tile in tiles):
+            closest, best_score = slug, score
+    return closest
+
+
 def refresh_imports(repo):
     for source, parent in [("photo-library.mjs", "poster-photos.mjs"), ("poster-photos.mjs", "announcement-ui.mjs"),
                            ("announcement-ui.mjs", "app.js"), ("app.js", "index.html")]:
@@ -135,14 +177,24 @@ def intake(repo, archive, items, private_only=False):
         slugs = {row[0] for row in rows}
         labels = {row[1] for row in rows}
         existing = legacy_sources(archive, {saved.stat().st_size for saved, _ in batch.values()})
+        samples = None
         images = {}
         for digest, (saved, item) in batch.items():
             slug = existing.get(digest) or "chat-" + hashlib.sha256(b"gallery-v1" + digest).hexdigest()[:32]
             target = repo / "photos" / (slug + ".webp")
-            result["photos"].append("photos/" + target.name)
             if slug in slugs:
                 if not target.is_file():
                     raise ValueError(f"登録済み画像がありません: {slug}")
+                result["photos"].append("photos/" + target.name)
+                continue
+            webp = make_webp(saved.read_bytes())
+            with Image.open(BytesIO(webp)) as image:
+                sample = photo_sample(image)
+            if samples is None:
+                samples = published_samples(repo / "photos", rows)
+            same = find_same_photo(sample, samples)
+            if same:
+                result["photos"].append(f"photos/{same}.webp")
                 continue
             label = item["label"].strip()
             outfits, scenes = item.get("outfits", []), item.get("scenes", [])
@@ -153,10 +205,12 @@ def intake(repo, archive, items, private_only=False):
             while title in labels:
                 title = f"{label}（{n}）"
                 n += 1
-            images[target] = make_webp(saved.read_bytes())
+            images[target] = webp
+            samples[slug] = sample
             rows.append([slug, title, outfits, scenes])
             labels.add(title)
             slugs.add(slug)
+            result["photos"].append("photos/" + target.name)
             result["added"].append("photos/" + target.name)
         # Finish decoding the full batch first. Publish the index after its images.
         if images:

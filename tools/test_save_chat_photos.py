@@ -5,7 +5,7 @@ import shutil
 from tempfile import TemporaryDirectory
 import unittest
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from tools.save_chat_photos import REPO, intake, refresh_imports
 
@@ -73,6 +73,39 @@ class ChatPhotoTests(unittest.TestCase):
         shutil.copyfile(REPO / "photos/garden.webp", self.site / "photos/garden.webp")
         self.assertEqual(self.save(red)["photos"], ["photos/garden.webp"])
         self.assertEqual(self.save(red)["added"], [])
+
+    def test_reattached_smaller_jpeg_matches_published_photo(self):
+        original = REPO / "photos/garden.webp"
+        shutil.copyfile(original, self.site / "photos/garden.webp")
+        attachment = self.root / "smaller.jpg"
+        with Image.open(original) as image:
+            image.thumbnail((640, 640), Image.Resampling.LANCZOS)
+            image.save(attachment, quality=84)
+        result = self.save({"source": str(attachment)})
+        self.assertEqual(result["photos"], ["photos/garden.webp"])
+        self.assertEqual(result["added"], [])
+        self.assertEqual(Path(result["originals"][0]).read_bytes(), attachment.read_bytes())
+        self.assertFalse((self.archive / "素材台帳.md").exists())
+
+    def test_two_encodings_in_one_batch_share_one_public_photo(self):
+        original = REPO / "photos/garden.webp"
+        attachment = self.root / "same-photo.png"
+        with Image.open(original) as image:
+            image.save(attachment)
+        result = self.save({"source": str(original), "label": "新しい写真"}, {"source": str(attachment)})
+        self.assertEqual(len(result["originals"]), 2)
+        self.assertEqual(len(result["added"]), 1)
+        self.assertEqual(result["photos"], result["added"] * 2)
+
+    def test_small_but_distinct_change_in_same_composition_stays_separate(self):
+        image = Image.new("RGB", (900, 600), "#71878c")
+        first = self.root / "first.png"
+        image.save(first)
+        ImageDraw.Draw(image).rectangle((400, 320, 415, 335), fill="white")
+        second = self.root / "second.png"
+        image.save(second)
+        result = self.save({"source": str(first), "label": "1枚目"}, {"source": str(second), "label": "2枚目"})
+        self.assertEqual(len(result["added"]), 2)
 
     def test_invalid_image_keeps_originals_and_can_retry(self):
         red, blue = self.photo("red.jpg", "red"), self.photo("blue.jpg", "blue")
