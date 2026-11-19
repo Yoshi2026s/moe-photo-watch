@@ -7,20 +7,21 @@ import { announcementFacts } from '../announcement-facts.mjs';
 import { nextDesign } from '../announcement-poster.mjs';
 
 test('掲載写真を名前と衣装の両方で絞り込み、解除で元の候補を表示する', () => {
-  const search = (query, outfit) => filterPosterPhotos(posterPhotos,query,outfit).map(photo=>photo.name);
+  const originalGallery = posterPhotos.filter(photo=>!photo.name.startsWith('chat-'));
+  const search = (query, outfit) => filterPosterPhotos(originalGallery,query,outfit).map(photo=>photo.name);
   assert.deepEqual(search('　庭園 ', 'kimono'), ['garden']);
   assert.deepEqual(search('ﾌﾞﾙｰﾘﾎﾞﾝ', 'animal'), ['blue-ribbon','blue-ribbon-green','blue-ribbon-red',
     'blue-ribbon-hood','blue-ribbon-smile','blue-ribbon-side','blue-ribbon-sofa']);
   assert.deepEqual(search('庭園', 'swim'), []);
   assert.deepEqual(search('', 'kimono'), ['portrait','garden','yukata','tatami','floral-yukata']);
   assert.deepEqual(search('テラス','dress'), ['white-dress-terrace']);
-  assert.equal(search('', '').length,posterPhotos.length);
+  assert.equal(search('', '').length,86);
 });
 
-test('公開素材86枚が重複なく写真一覧にあり、どの衣装の回でも手動で全枚を選べる', () => {
+test('公開素材が重複なく写真一覧にあり、どの衣装の回でも手動で全枚を選べる', () => {
   const files = readdirSync(new URL('../photos/',import.meta.url)).sort();
-  assert.equal(posterPhotos.length,86);
-  assert.equal(new Set(posterPhotos.map(photo=>photo.label)).size,86);
+  assert.equal(new Set(posterPhotos.map(photo=>photo.label)).size,posterPhotos.length);
+  assert.equal(filterPosterPhotos(posterPhotos,'','').length,posterPhotos.length);
   assert.deepEqual(posterPhotos.map(photo=>photo.src).sort(),files.map(file=>'photos/' + file));
   const profile = posterThemeProfile({title:'浴衣撮影会'});
   const manual = rankPosterPhotos(posterPhotos,profile,undefined,true);
